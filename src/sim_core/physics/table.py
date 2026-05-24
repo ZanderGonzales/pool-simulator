@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from sim_core.utils.constants import (
+    DEFAULT_COEFFICIENT_OF_RESTITUTION,
     DEFAULT_ROLLING_RESISTANCE_COEFFICIENT,
     DEFAULT_VELOCITY_STOP_THRESHOLD,
     TABLE_HEIGHT_M,
@@ -18,6 +19,7 @@ class TableConfig:
     height: float = TABLE_HEIGHT_M
     rolling_resistance_coefficient: float = DEFAULT_ROLLING_RESISTANCE_COEFFICIENT
     velocity_stop_threshold: float = DEFAULT_VELOCITY_STOP_THRESHOLD
+    coefficient_of_restitution: float = DEFAULT_COEFFICIENT_OF_RESTITUTION
 
     def __post_init__(self) -> None:
         if self.width <= 0 or self.height <= 0:
@@ -26,3 +28,5 @@ class TableConfig:
             raise ValueError("rolling_resistance_coefficient must be non-negative")
         if self.velocity_stop_threshold <= 0:
             raise ValueError("velocity_stop_threshold must be positive")
+        if not 0.0 <= self.coefficient_of_restitution <= 1.0:
+            raise ValueError("coefficient_of_restitution must be in [0, 1]")

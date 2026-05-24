@@ -4,6 +4,8 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from sim_core.physics.ball import Ball
+from sim_core.physics.collision.detector import find_ball_ball_contacts
+from sim_core.physics.collision.resolver import resolve_ball_ball_contacts
 from sim_core.physics.integrator import step_ball
 from sim_core.physics.table import TableConfig
 
@@ -14,17 +16,20 @@ class SimulationConfig:
 
     dt: float = 0.01
     max_steps: int = 100_000
+    collision_iterations: int = 4
 
     def __post_init__(self) -> None:
         if self.dt <= 0:
             raise ValueError("dt must be positive")
         if self.max_steps <= 0:
             raise ValueError("max_steps must be positive")
+        if self.collision_iterations <= 0:
+            raise ValueError("collision_iterations must be positive")
 
 
 @dataclass
 class Simulation:
-    """Phase 1 simulation: derived rolling resistance, motion, no collisions."""
+    """2D billiards simulation: rolling resistance and ball-ball collisions."""
 
     balls: list[Ball]
     table: TableConfig
@@ -32,11 +37,20 @@ class Simulation:
     time: float = 0.0
 
     def step(self) -> None:
-        """Advance one timestep for all active balls."""
+        """Advance one timestep, then resolve ball-ball contacts."""
         dt = self.config.dt
         for ball in self.balls:
             step_ball(ball, self.table, dt)
+        self._resolve_ball_ball_collisions()
         self.time += dt
+
+    def _resolve_ball_ball_collisions(self) -> None:
+        """Iteratively detect and resolve overlaps within the same timestep."""
+        for _ in range(self.config.collision_iterations):
+            contacts = find_ball_ball_contacts(self.balls)
+            if not contacts:
+                break
+            resolve_ball_ball_contacts(self.balls, contacts, self.table)
 
     def all_stopped(self) -> bool:
         return all(

@@ -100,9 +100,47 @@ issues from explicit Euler integration.
 `velocity_stop_threshold` clamps tiny speeds to zero. It is a numerical
 cleanup threshold, not part of the physical model.
 
+## Phase 2: Ball-ball collisions (frictionless, normal impulse)
+
+Equal-mass spheres collide along the line of centers. The **contact normal** \(\mathbf{n}\)
+points from ball A toward ball B:
+
+\[
+\mathbf{n} = \frac{\mathbf{x}_B - \mathbf{x}_A}{\|\mathbf{x}_B - \mathbf{x}_A\|}
+\]
+
+Relative normal velocity:
+
+\[
+v_{\text{rel},n} = (\mathbf{v}_B - \mathbf{v}_A) \cdot \mathbf{n}
+\]
+
+If \(v_{\text{rel},n} \ge 0\), the balls are separating and no impulse is applied.
+
+Otherwise, with coefficient of restitution \(e \in [0, 1]\):
+
+\[
+J = -\frac{(1 + e)\, v_{\text{rel},n}}{\frac{1}{m_A} + \frac{1}{m_B}}
+\]
+
+Velocity updates (no tangential friction in Phase 2):
+
+\[
+\mathbf{v}_A \leftarrow \mathbf{v}_A - \frac{J}{m_A}\mathbf{n},
+\quad
+\mathbf{v}_B \leftarrow \mathbf{v}_B + \frac{J}{m_B}\mathbf{n}
+\]
+
+For equal mass and \(e = 1\), a head-on collision swaps the velocity components along \(\mathbf{n}\).
+
+**Positional correction:** if centers overlap, each ball is shifted by half the penetration depth along \(\mathbf{n}\) to remove overlap before the next sub-step.
+
+**Assumptions:** point-mass translational dynamics; no spin transfer; no ball-ball friction. Tangential effects are deferred to Phase 5.
+
+Each simulation step integrates rolling resistance first, then resolves contacts (up to `collision_iterations` passes).
+
 ## Not yet modeled
 
-- Ball-ball collisions
 - Cushion and rail reflections
 - Pockets and table boundary constraints
 - Spin, angular momentum, rolling/sliding transitions

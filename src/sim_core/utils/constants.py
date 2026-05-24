@@ -16,3 +16,6 @@ DEFAULT_ROLLING_RESISTANCE_COEFFICIENT = 0.02
 
 # Velocity below which a ball is considered stopped (m/s)
 DEFAULT_VELOCITY_STOP_THRESHOLD = 1e-4
+
+# Ball-ball coefficient of restitution (1 = elastic, 0 = inelastic)
+DEFAULT_COEFFICIENT_OF_RESTITUTION = 0.95

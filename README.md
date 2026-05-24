@@ -11,8 +11,10 @@ or billiards simulator package.
 resistance, configurable table parameters, closed-form timestep updates, and
 pytest validation.
 
-Upcoming: ball-ball collisions, rails, spin, visualization, inverse shot
-optimization.
+**Phase 2 complete:** ball-ball collision detection, impulse-based resolution
+with configurable restitution, positional separation, and conservation tests.
+
+Upcoming: rails, spin, visualization, inverse shot optimization.
 
 ## Requirements
 
@@ -38,6 +40,7 @@ pytest
 
 ```bash
 python examples/phase1_single_ball.py
+python examples/phase2_ball_collision.py
 ```
 
 ## Project layout

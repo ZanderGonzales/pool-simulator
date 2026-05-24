@@ -29,7 +29,7 @@ def resolve_ball_rail_contact(
     Separate overlap, then reflect incoming normal velocity into the cushion.
 
     Positional correction runs whenever penetration > 0 (same pattern as Phase 2).
-    Velocity reflection runs only when v_n = v·n < 0. Returns True if velocity
+    Velocity reflection runs only when v_n = dot(v, n) < 0. Returns True if velocity
     changed.
     """
     normal = contact.normal
@@ -55,7 +55,8 @@ def resolve_ball_rail_contacts(
 ) -> int:
     """Resolve each rail contact once. Returns the number of reflections applied."""
     applied = 0
-    for contact in contacts:
+    sorted_contacts = sorted(contacts, key=lambda contact: (contact.index_a, contact.index_b))
+    for contact in sorted_contacts:
         ball = balls[contact.index_a]
         if resolve_ball_rail_contact(ball, contact, table):
             applied += 1

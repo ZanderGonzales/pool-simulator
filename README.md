@@ -18,7 +18,10 @@ with configurable restitution, positional separation, and conservation tests.
 reflection with restitution, optional tangential damping, and anti-tunneling
 positional correction.
 
-Upcoming: full rack simulation, spin, visualization, inverse shot optimization.
+**Phase 4 complete:** 15-ball triangle rack layout, break-shot setup, multi-ball
+integration tests, and simulation diagnostics.
+
+Upcoming: spin, visualization, inverse shot optimization.
 
 ## Requirements
 
@@ -46,6 +49,7 @@ pytest
 python examples/phase1_single_ball.py
 python examples/phase2_ball_collision.py
 python examples/phase3_rail_bounce.py
+python examples/phase4_break_shot.py
 ```
 
 ## Project layout

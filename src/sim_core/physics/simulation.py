@@ -7,7 +7,7 @@ from sim_core.physics.ball import Ball
 from sim_core.physics.collision.detector import find_ball_ball_contacts
 from sim_core.physics.collision.rail_detector import find_ball_rail_contacts
 from sim_core.physics.collision.rail_resolver import resolve_ball_rail_contacts
-from sim_core.physics.collision.resolver import resolve_ball_ball_contacts
+from sim_core.physics.collision.resolver import resolve_ball_ball_contacts, separate_balls
 from sim_core.physics.integrator import step_ball
 from sim_core.physics.table import TableConfig
 
@@ -45,6 +45,7 @@ class Simulation:
             step_ball(ball, self.table, dt)
         self._resolve_ball_ball_collisions()
         self._resolve_rail_collisions()
+        self._resolve_ball_ball_collisions()
         self.time += dt
 
     def _resolve_ball_ball_collisions(self) -> None:
@@ -54,6 +55,16 @@ class Simulation:
             if not contacts:
                 break
             resolve_ball_ball_contacts(self.balls, contacts, self.table)
+
+        for _ in range(self.config.collision_iterations):
+            contacts = find_ball_ball_contacts(self.balls)
+            overlapping = [contact for contact in contacts if contact.penetration > 0.0]
+            if not overlapping:
+                break
+            for contact in sorted(overlapping, key=lambda item: (item.index_a, item.index_b)):
+                ball_a = self.balls[contact.index_a]
+                ball_b = self.balls[contact.index_b]
+                separate_balls(ball_a, ball_b, contact.normal, contact.penetration)
 
     def _resolve_rail_collisions(self) -> None:
         """Iteratively resolve ball-cushion penetrations within the same timestep."""

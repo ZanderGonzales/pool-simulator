@@ -195,9 +195,33 @@ out of scope until the spin phase.
 Each simulation step integrates rolling resistance, resolves ball-ball
 contacts, then resolves rail contacts.
 
+## Phase 4: Full rack simulation
+
+Phase 4 adds layout helpers for a regulation-style 15-ball triangle and a
+break-shot factory. The table uses coordinates `[0, width] x [0, height]` with
+cushions on the boundary edges.
+
+Default placement on the long axis:
+
+- Foot spot (rack apex): `(0.25 * width, 0.5 * height)`
+- Head spot (cue ball target line): `(0.75 * width, 0.5 * height)`
+
+The triangle uses five rows (1 + 2 + 3 + 4 + 5 balls). Row spacing along the
+table is `sqrt(3) * radius`; balls within a row are spaced `2 * radius`.
+Rows extend from the apex toward the foot rail (-x). The cue ball starts on the
+head side with velocity toward the apex.
+
+**Assumptions:** no pockets, no spin transfer, frictionless ball-ball contacts,
+and O(n^2) all-pairs collision detection (acceptable for 16 balls).
+
+Diagnostics exposed for tests:
+
+- total kinetic energy
+- maximum pairwise overlap
+- moving-ball count
+
 ## Not yet modeled
 
-- Pockets and table boundary constraints
 - Pockets and table boundary constraints
 - Spin, angular momentum, rolling/sliding transitions
 - Cue strike impulse model
@@ -213,3 +237,5 @@ The tests compare implementation results against the derived equations:
 - Exact clamping at the physical stopping point when a timestep runs past rest
 - Specular reflection off a straight cushion with \(e = 1\)
 - Rail overlap separation even when the ball is not moving into the cushion
+- Non-overlapping 15-ball triangle rack geometry
+- Break-shot energy does not increase step-to-step beyond numerical tolerance

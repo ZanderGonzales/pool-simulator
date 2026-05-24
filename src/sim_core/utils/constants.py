@@ -1,5 +1,9 @@
 """Regulation-scale defaults (SI units)."""
 
+from __future__ import annotations
+
+import math
+
 INCH_TO_M = 0.0254
 GRAVITY_MPS2 = 9.80665
 
@@ -19,3 +23,10 @@ DEFAULT_VELOCITY_STOP_THRESHOLD = 1e-4
 
 # Ball-ball coefficient of restitution (1 = elastic, 0 = inelastic)
 DEFAULT_COEFFICIENT_OF_RESTITUTION = 0.95
+
+# Default rack placement along the long table axis (fraction of width).
+DEFAULT_FOOT_SPOT_X_FRACTION = 0.25
+DEFAULT_HEAD_SPOT_X_FRACTION = 0.75
+
+# Vertical spacing between triangle rows (touching balls).
+ROW_SPACING_M = math.sqrt(3.0) * BALL_RADIUS_M

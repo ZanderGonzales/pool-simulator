@@ -60,7 +60,8 @@ def resolve_ball_ball_contacts(
 ) -> int:
     """Resolve each contact once. Returns the number of impulses applied."""
     applied = 0
-    for contact in contacts:
+    sorted_contacts = sorted(contacts, key=lambda contact: (contact.index_a, contact.index_b))
+    for contact in sorted_contacts:
         ball_a = balls[contact.index_a]
         ball_b = balls[contact.index_b]
         if resolve_ball_ball_contact(ball_a, ball_b, contact, table):

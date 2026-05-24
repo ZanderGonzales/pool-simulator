@@ -139,9 +139,65 @@ For equal mass and \(e = 1\), a head-on collision swaps the velocity components 
 
 Each simulation step integrates rolling resistance first, then resolves contacts (up to `collision_iterations` passes).
 
+## Phase 3: Rail collisions
+
+Rails are modeled as finite `CushionSegment` line segments on `TableConfig`.
+The default table uses four rectangular cushions around the playable surface.
+Each cushion has a unit normal pointing into the playable area.
+
+For each active ball and cushion, the detector projects the ball center onto
+the finite segment and clamps the projection to the segment endpoints. If
+\(\mathbf{c}\) is the closest point and \(\mathbf{n}\) is the inward cushion
+normal, the signed center distance is:
+
+\[
+d = (\mathbf{x} - \mathbf{c}) \cdot \mathbf{n}
+\]
+
+The ball penetrates when:
+
+\[
+r - d > 0
+\]
+
+where \(r\) is the ball radius. This closest-point test handles the finite
+length of each rail segment without assuming an infinite wall. Exact segment
+endpoints are excluded for now because pocket/corner geometry is deferred.
+
+**Positional correction / anti-tunneling:** Phase 3 uses post-step positional
+correction rather than sub-stepping. Whenever penetration is positive, the ball
+is translated by \((r - d)\mathbf{n}\), independent of velocity. This matches
+the Phase 2 overlap correction pattern and prevents a high-speed ball that
+crosses a rail in one timestep from remaining outside the playable area.
+
+Velocity reflection is applied only when the ball moves into the cushion:
+
+\[
+v_n = \mathbf{v} \cdot \mathbf{n} < 0
+\]
+
+The normal component is then reflected with coefficient of restitution \(e\):
+
+\[
+\mathbf{v}'_n = -e\mathbf{v}_n
+\]
+
+The tangential component is preserved by default. `cushion_tangential_damping`
+optionally scales tangential velocity on cushion hits:
+
+\[
+\mathbf{v}'_t = (1 - d_t)\mathbf{v}_t
+\]
+
+where \(d_t \in [0, 1]\). Spin and physically detailed cushion friction remain
+out of scope until the spin phase.
+
+Each simulation step integrates rolling resistance, resolves ball-ball
+contacts, then resolves rail contacts.
+
 ## Not yet modeled
 
-- Cushion and rail reflections
+- Pockets and table boundary constraints
 - Pockets and table boundary constraints
 - Spin, angular momentum, rolling/sliding transitions
 - Cue strike impulse model
@@ -155,3 +211,5 @@ The tests compare implementation results against the derived equations:
 - Stopping time \(t_{\text{stop}} = v_0 / (\mu_r g)\)
 - Stopping distance \(d_{\text{stop}} = v_0^2 / (2\mu_r g)\)
 - Exact clamping at the physical stopping point when a timestep runs past rest
+- Specular reflection off a straight cushion with \(e = 1\)
+- Rail overlap separation even when the ball is not moving into the cushion

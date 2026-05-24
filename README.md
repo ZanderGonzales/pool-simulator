@@ -14,7 +14,11 @@ pytest validation.
 **Phase 2 complete:** ball-ball collision detection, impulse-based resolution
 with configurable restitution, positional separation, and conservation tests.
 
-Upcoming: rails, spin, visualization, inverse shot optimization.
+**Phase 3 complete:** cushion segments, closest-point rail detection, velocity
+reflection with restitution, optional tangential damping, and anti-tunneling
+positional correction.
+
+Upcoming: full rack simulation, spin, visualization, inverse shot optimization.
 
 ## Requirements
 
@@ -36,11 +40,12 @@ pip install -e ".[dev]"
 pytest
 ```
 
-## Run Phase 1 example
+## Run examples
 
 ```bash
 python examples/phase1_single_ball.py
 python examples/phase2_ball_collision.py
+python examples/phase3_rail_bounce.py
 ```
 
 ## Project layout
@@ -48,6 +53,7 @@ python examples/phase2_ball_collision.py
 ```text
 src/sim_core/
   physics/       # Derived mechanics and simulation loop
+    collision/   # detector/resolver (balls) and rail_detector/rail_resolver
   rendering/     # Phase 6
   optimization/  # Phase 7
   utils/         # Vectors and constants

@@ -5,6 +5,8 @@ from typing import Any
 
 from sim_core.physics.ball import Ball
 from sim_core.physics.collision.detector import find_ball_ball_contacts
+from sim_core.physics.collision.rail_detector import find_ball_rail_contacts
+from sim_core.physics.collision.rail_resolver import resolve_ball_rail_contacts
 from sim_core.physics.collision.resolver import resolve_ball_ball_contacts
 from sim_core.physics.integrator import step_ball
 from sim_core.physics.table import TableConfig
@@ -29,7 +31,7 @@ class SimulationConfig:
 
 @dataclass
 class Simulation:
-    """2D billiards simulation: rolling resistance and ball-ball collisions."""
+    """2D billiards simulation with rolling resistance and collisions."""
 
     balls: list[Ball]
     table: TableConfig
@@ -37,11 +39,12 @@ class Simulation:
     time: float = 0.0
 
     def step(self) -> None:
-        """Advance one timestep, then resolve ball-ball contacts."""
+        """Advance one timestep, then resolve ball-ball and rail contacts."""
         dt = self.config.dt
         for ball in self.balls:
             step_ball(ball, self.table, dt)
         self._resolve_ball_ball_collisions()
+        self._resolve_rail_collisions()
         self.time += dt
 
     def _resolve_ball_ball_collisions(self) -> None:
@@ -51,6 +54,14 @@ class Simulation:
             if not contacts:
                 break
             resolve_ball_ball_contacts(self.balls, contacts, self.table)
+
+    def _resolve_rail_collisions(self) -> None:
+        """Iteratively resolve ball-cushion penetrations within the same timestep."""
+        for _ in range(self.config.collision_iterations):
+            contacts = find_ball_rail_contacts(self.balls, self.table)
+            if not contacts:
+                break
+            resolve_ball_rail_contacts(self.balls, contacts, self.table)
 
     def all_stopped(self) -> bool:
         return all(

@@ -8,6 +8,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from sim_core.physics.ball import Ball
+from sim_core.physics.shot import ShotParams
 from sim_core.utils.constants import (
     BALL_RADIUS_M,
     DEFAULT_FOOT_SPOT_X_FRACTION,
@@ -51,12 +52,18 @@ class BreakSetup:
         validate_no_overlaps(list(self.balls))
 
 
-def default_foot_spot(table_width: float = TABLE_WIDTH_M, table_height: float = TABLE_HEIGHT_M) -> Vec2:
+def default_foot_spot(
+    table_width: float = TABLE_WIDTH_M,
+    table_height: float = TABLE_HEIGHT_M,
+) -> Vec2:
     """Return the default foot-spot position on the long table axis."""
     return vec2(table_width * DEFAULT_FOOT_SPOT_X_FRACTION, table_height * 0.5)
 
 
-def default_head_spot(table_width: float = TABLE_WIDTH_M, table_height: float = TABLE_HEIGHT_M) -> Vec2:
+def default_head_spot(
+    table_width: float = TABLE_WIDTH_M,
+    table_height: float = TABLE_HEIGHT_M,
+) -> Vec2:
     """Return the default head-spot position on the long table axis."""
     return vec2(table_width * DEFAULT_HEAD_SPOT_X_FRACTION, table_height * 0.5)
 
@@ -155,6 +162,7 @@ def place_cue_ball(
 def create_break_setup(
     *,
     break_speed: float = 3.0,
+    shot: ShotParams | None = None,
     foot_spot: Vec2 | None = None,
     head_spot: Vec2 | None = None,
     table_width: float = TABLE_WIDTH_M,
@@ -163,6 +171,8 @@ def create_break_setup(
     radius: float = BALL_RADIUS_M,
 ) -> BreakSetup:
     """Create a cue ball plus triangle rack with the cue moving toward the apex."""
+    if shot is not None:
+        break_speed = shot.speed
     rack = triangle_rack(
         foot_spot=foot_spot,
         table_width=table_width,
@@ -178,6 +188,8 @@ def create_break_setup(
         radius=radius,
     )
     cue_ball.velocity = vec2(-break_speed, 0.0)
+    if shot is not None:
+        cue_ball.omega = shot.omega
 
     balls = list(rack.balls) + [cue_ball]
     validate_no_overlaps(balls)

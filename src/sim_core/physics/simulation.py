@@ -76,7 +76,10 @@ class Simulation:
 
     def all_stopped(self) -> bool:
         return all(
-            not ball.is_moving(self.table.velocity_stop_threshold)
+            not ball.is_moving(
+                self.table.velocity_stop_threshold,
+                self.table.omega_stop_threshold,
+            )
             for ball in self.balls
             if ball.active
         )
@@ -119,6 +122,7 @@ class Simulation:
                     "id": ball.id,
                     "position": ball.position.copy(),
                     "velocity": ball.velocity.copy(),
+                    "omega": ball.omega,
                     "active": ball.active,
                     "radius": ball.radius,
                 }

@@ -15,6 +15,28 @@ def table() -> TableConfig:
 
 
 @pytest.fixture
+def spin_table() -> TableConfig:
+    return TableConfig(
+        rolling_resistance_coefficient=0.02,
+        velocity_stop_threshold=1e-4,
+        sliding_friction_coefficient=0.3,
+        spin_decay_rate=5.0,
+        omega_stop_threshold=1e-3,
+        sliding_speed_threshold=0.005,
+    )
+
+
+@pytest.fixture
+def spin_ball() -> Ball:
+    return Ball(
+        id=0,
+        position=vec2(0.0, 0.0),
+        velocity=vec2(1.0, 0.0),
+        omega=10.0,
+    )
+
+
+@pytest.fixture
 def single_ball() -> Ball:
     return Ball(id=0, position=vec2(0.0, 0.0), velocity=vec2(1.0, 0.0))
 

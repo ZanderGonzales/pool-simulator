@@ -193,7 +193,10 @@ where \(d_t \in [0, 1]\). Spin and physically detailed cushion friction remain
 out of scope until the spin phase.
 
 Each simulation step integrates rolling resistance, resolves ball-ball
-contacts, then resolves rail contacts.
+contacts, resolves rail contacts, and then runs a final ball-ball cleanup pass.
+The final pass is a stability guard for dense scenes: rail correction can push
+balls back into nearby balls, so the last pass removes any new pairwise
+penetration before time advances.
 
 ## Phase 4: Full rack simulation
 
@@ -220,11 +223,66 @@ Diagnostics exposed for tests:
 - maximum pairwise overlap
 - moving-ball count
 
+The Phase 4 break-shot tests treat total kinetic energy as a regression signal:
+with rolling resistance and restitution at or below 1, the simulation should not
+gain translational kinetic energy from one timestep to the next beyond a small
+floating-point tolerance. This is not a full physical validation of a real
+break because pockets and a full cue impact model are still absent.
+
+## Phase 5: Spin and rolling/sliding cloth friction
+
+Phase 5 adds scalar spin about the vertical axis \(\omega_z\) (rad/s) to each
+`Ball`. Solid-sphere inertia:
+
+\[
+I = \frac{2}{5} m r^2
+\]
+
+**Slip velocity** (lumped 2D cloth model, motion-aligned):
+
+\[
+\mathbf{v}_\text{slip} = \mathbf{v} - \omega_z r \hat{\mathbf{v}}
+\]
+
+When \(\|\mathbf{v}\|\approx 0\), a fixed reference axis avoids singularities.
+Positive \(\omega_z\) is **top spin** and negative \(\omega_z\) is **draw**
+along the current velocity direction on a break toward \(-x\). Side english and
+a full contact-patch solve are not modeled.
+
+**Cloth friction:**
+
+- **Sliding:** reduce \(\|\mathbf{v}_\text{slip}\|\) by up to \(\mu_s g\Delta t\)
+  along \(-\hat{\mathbf{v}}_\text{slip}\), with coupled \(\omega\) adjustment.
+- **Rolling:** when slip is below `sliding_speed_threshold` or rim speed exceeds
+  center speed, use Phase 1 rolling resistance on translation plus optional spin
+  decay \(d\omega/dt = -k_\omega \omega\).
+
+This is a **lumped cloth model**, not a full rigid-body contact solve. Energy is
+not fully conserved once sliding friction and inelastic tangential impulses act.
+
+**Ball-ball tangential impulse** (after normal impulse \(J_n\)):
+
+- Tangential unit vector \(\mathbf{t} = \mathbf{n}^\perp\)
+- Relative tangential velocity at contact includes spin:
+  \(v_{\text{rel},t} = (\mathbf{v}_B - \mathbf{v}_A)\cdot\mathbf{t} + r(\omega_A + \omega_B)\)
+- Impulse capped by Coulomb friction \(|J_t| \le \mu_{bb} |J_n|\)
+- Default \(\mu_{bb} = 0\) preserves Phase 2–4 frictionless behavior; set
+  `ball_ball_friction` for spin transfer at contacts.
+
+**Cue english:** `ShotParams(speed, omega)` sets initial cue velocity and
+\(\omega_z\) in `create_break_setup` (no full cue–ball impact model).
+
+**Diagnostics / snapshot:** `rotational_kinetic_energy`, `total_energy`, and
+`omega` per ball in `snapshot()`.
+
+**Explicitly not modeled:** 3D spin vector, Magnus force, pockets, cue impact
+beyond initial conditions, cushion throw beyond existing tangential damping.
+
 ## Not yet modeled
 
 - Pockets and table boundary constraints
-- Spin, angular momentum, rolling/sliding transitions
-- Cue strike impulse model
+- Cue strike impulse model (dynamic cue–ball contact)
+- Visualization and inverse shot optimization (later phases)
 
 ## Validation
 
@@ -239,3 +297,8 @@ The tests compare implementation results against the derived equations:
 - Rail overlap separation even when the ball is not moving into the cushion
 - Non-overlapping 15-ball triangle rack geometry
 - Break-shot energy does not increase step-to-step beyond numerical tolerance
+- Break-shot overlap correction prevents persistent ball intersections
+- Diagnostic helpers report kinetic energy, overlap, and moving-ball count
+- Slip velocity near zero when \(|\mathbf{v}| \approx |\omega| r\) (pure rolling)
+- Spin decay under cloth friction; sliding balls lose speed and spin
+- Tangential ball-ball impulse changes \(\omega\) and respects Coulomb cap

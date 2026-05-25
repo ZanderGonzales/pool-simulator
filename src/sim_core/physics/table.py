@@ -6,9 +6,14 @@ import numpy as np
 from numpy.typing import NDArray
 
 from sim_core.utils.constants import (
+    DEFAULT_BALL_BALL_FRICTION,
     DEFAULT_COEFFICIENT_OF_RESTITUTION,
+    DEFAULT_OMEGA_STOP_THRESHOLD,
     DEFAULT_ROLLING_RESISTANCE_COEFFICIENT,
+    DEFAULT_SLIDING_FRICTION_COEFFICIENT,
+    DEFAULT_SPIN_DECAY_RATE,
     DEFAULT_VELOCITY_STOP_THRESHOLD,
+    SLIDING_SPEED_THRESHOLD,
     TABLE_HEIGHT_M,
     TABLE_WIDTH_M,
 )
@@ -45,7 +50,11 @@ class CushionSegment:
 def default_cushions(width: float, height: float) -> tuple[CushionSegment, ...]:
     """Return rectangular table cushions around the playable surface."""
     return (
-        CushionSegment(start=vec2(0.0, 0.0), end=vec2(width, 0.0), normal=vec2(0.0, 1.0)),
+        CushionSegment(
+            start=vec2(0.0, 0.0),
+            end=vec2(width, 0.0),
+            normal=vec2(0.0, 1.0),
+        ),
         CushionSegment(
             start=vec2(width, 0.0), end=vec2(width, height), normal=vec2(-1.0, 0.0)
         ),
@@ -60,7 +69,7 @@ def default_cushions(width: float, height: float) -> tuple[CushionSegment, ...]:
 
 @dataclass(frozen=True)
 class TableConfig:
-    """Table geometry and rolling-resistance parameters."""
+    """Table geometry, friction, and spin parameters."""
 
     width: float = TABLE_WIDTH_M
     height: float = TABLE_HEIGHT_M
@@ -68,6 +77,11 @@ class TableConfig:
     velocity_stop_threshold: float = DEFAULT_VELOCITY_STOP_THRESHOLD
     coefficient_of_restitution: float = DEFAULT_COEFFICIENT_OF_RESTITUTION
     cushion_tangential_damping: float = 0.0
+    sliding_friction_coefficient: float = DEFAULT_SLIDING_FRICTION_COEFFICIENT
+    ball_ball_friction: float = DEFAULT_BALL_BALL_FRICTION
+    spin_decay_rate: float = DEFAULT_SPIN_DECAY_RATE
+    omega_stop_threshold: float = DEFAULT_OMEGA_STOP_THRESHOLD
+    sliding_speed_threshold: float = SLIDING_SPEED_THRESHOLD
     cushions: tuple[CushionSegment, ...] = field(default_factory=tuple)
 
     def __post_init__(self) -> None:
@@ -81,5 +95,15 @@ class TableConfig:
             raise ValueError("coefficient_of_restitution must be in [0, 1]")
         if not 0.0 <= self.cushion_tangential_damping <= 1.0:
             raise ValueError("cushion_tangential_damping must be in [0, 1]")
+        if self.sliding_friction_coefficient < 0:
+            raise ValueError("sliding_friction_coefficient must be non-negative")
+        if self.ball_ball_friction < 0:
+            raise ValueError("ball_ball_friction must be non-negative")
+        if self.spin_decay_rate < 0:
+            raise ValueError("spin_decay_rate must be non-negative")
+        if self.omega_stop_threshold <= 0:
+            raise ValueError("omega_stop_threshold must be positive")
+        if self.sliding_speed_threshold <= 0:
+            raise ValueError("sliding_speed_threshold must be positive")
         if not self.cushions:
             object.__setattr__(self, "cushions", default_cushions(self.width, self.height))

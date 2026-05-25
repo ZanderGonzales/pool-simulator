@@ -3,12 +3,29 @@
 from __future__ import annotations
 
 from sim_core.physics.ball import Ball
+from sim_core.physics.spin_integrator import sphere_inertia
 from sim_core.utils.vectors import norm
 
 
 def total_kinetic_energy(balls: list[Ball]) -> float:
     """Return total translational kinetic energy of active balls."""
     return sum(0.5 * ball.mass * ball.speed**2 for ball in balls if ball.active)
+
+
+def rotational_kinetic_energy(balls: list[Ball]) -> float:
+    """Return total rotational kinetic energy about the vertical axis."""
+    energy = 0.0
+    for ball in balls:
+        if not ball.active:
+            continue
+        inertia = sphere_inertia(ball.mass, ball.radius)
+        energy += 0.5 * inertia * ball.omega * ball.omega
+    return energy
+
+
+def total_energy(balls: list[Ball]) -> float:
+    """Return translational plus rotational kinetic energy."""
+    return total_kinetic_energy(balls) + rotational_kinetic_energy(balls)
 
 
 def max_ball_overlap(balls: list[Ball]) -> float:
@@ -29,8 +46,14 @@ def max_ball_overlap(balls: list[Ball]) -> float:
     return max_penetration
 
 
-def count_moving_balls(balls: list[Ball], velocity_stop_threshold: float) -> int:
-    """Return the number of active balls still moving above the stop threshold."""
+def count_moving_balls(
+    balls: list[Ball],
+    velocity_stop_threshold: float,
+    omega_stop_threshold: float | None = None,
+) -> int:
+    """Return the number of active balls still moving above the stop thresholds."""
     return sum(
-        1 for ball in balls if ball.is_moving(velocity_stop_threshold)
+        1
+        for ball in balls
+        if ball.is_moving(velocity_stop_threshold, omega_stop_threshold)
     )

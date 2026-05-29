@@ -80,11 +80,22 @@ def integrate_position(ball: Ball, dt: float) -> None:
     ball.position = ball.position + ball.velocity * dt
 
 
-def step_ball(ball: Ball, table: TableConfig, dt: float) -> None:
-    """Single-timestep update with rolling/sliding cloth regimes."""
-    from sim_core.physics.spin_integrator import step_ball_spin
-
+def _uses_spin_integrator(ball: Ball, table: TableConfig) -> bool:
+    """Use spin/cloth integrator when spin is active or sliding friction applies."""
     if ball.omega != 0.0:
+        return True
+    if table.sliding_friction_coefficient <= 0.0:
+        return False
+    from sim_core.physics.spin_integrator import slip_speed
+
+    return slip_speed(ball) >= table.sliding_speed_threshold
+
+
+def step_ball(ball: Ball, table: TableConfig, dt: float) -> None:
+    """Single-timestep update with rolling or sliding cloth regimes."""
+    if _uses_spin_integrator(ball, table):
+        from sim_core.physics.spin_integrator import step_ball_spin
+
         step_ball_spin(ball, table, dt)
         return
     apply_rolling_resistance(ball, table, dt)

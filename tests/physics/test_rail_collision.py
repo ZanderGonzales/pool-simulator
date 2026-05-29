@@ -57,6 +57,7 @@ def test_separates_overlap_when_moving_away_from_cushion() -> None:
 def test_specular_reflection_angle_off_cushion() -> None:
     table = TableConfig(
         rolling_resistance_coefficient=0.0,
+        sliding_friction_coefficient=0.0,
         coefficient_of_restitution=1.0,
         rail_friction=0.0,
     )
@@ -105,6 +106,7 @@ def test_inelastic_cushion_reduces_energy_by_restitution() -> None:
     e = 0.5
     table = TableConfig(
         rolling_resistance_coefficient=0.0,
+        sliding_friction_coefficient=0.0,
         coefficient_of_restitution=e,
         rail_friction=0.0,
     )

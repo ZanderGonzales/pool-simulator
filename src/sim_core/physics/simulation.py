@@ -151,5 +151,12 @@ class Simulation:
             "table": {
                 "width": self.table.width,
                 "height": self.table.height,
+                "pockets": [
+                    {
+                        "center": pocket.center.copy(),
+                        "radius": pocket.radius,
+                    }
+                    for pocket in self.table.pockets
+                ],
             },
         }

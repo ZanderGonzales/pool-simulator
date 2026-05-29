@@ -26,7 +26,12 @@ simulation diagnostics.
 rolling/sliding regimes, ball-ball tangential impulse with Coulomb cap, cue
 english via `ShotParams`, rotational diagnostics, and spin tests.
 
-Upcoming: visualization (Phase 6), inverse shot optimization (Phase 7).
+**Phase 6 complete:** six circular pockets, cushion tangential friction with
+spin coupling, `CueStrike` hit offsets on break setup, skidding integration when
+\(\omega=0\) but cloth slip is high, pocket diagnostics, and realism tests.
+
+Upcoming: 3D spin vector (Phase 7), Pygame visualization (Phase 8), shot
+optimization (Phase 9), portfolio packaging (Phase 10).
 
 ## Requirements
 
@@ -56,6 +61,7 @@ python examples/phase2_ball_collision.py
 python examples/phase3_rail_bounce.py
 python examples/phase4_break_shot.py
 python examples/phase5_spin_demo.py
+python examples/phase6_realism_demo.py
 ```
 
 ## Test coverage
@@ -70,13 +76,14 @@ file. It validates:
   cleanup
 - spin slip velocity, cloth friction decay, tangential collision impulses, and
   cue english on break setup
+- pockets, rail spin friction, `CueStrike` offsets, and skidding without spin
 - simulation bookkeeping such as time advancement, fixed-step runs,
   run-until-stopped, and snapshots
 
 The tests intentionally do not assert rendering or optimizer behavior because
-those phases are placeholders. They also do not claim real-world break-shot
-accuracy yet because pockets and a dynamic cue impulse model are still out of
-scope.
+those phases are placeholders. They also do not claim broadcast-accurate
+break-shot physics: the cue model sets initial conditions rather than resolving
+a dynamic cue–ball impact.
 
 ## Project layout
 
@@ -88,8 +95,8 @@ src/sim_core/
   shot.py
   rack.py      # 15-ball rack and break-shot setup helpers
   diagnostics.py
-  rendering/     # Phase 6
-  optimization/  # Phase 7
+  rendering/     # Phase 8
+  optimization/  # Phase 9
   utils/         # Vectors and constants
 tests/           # pytest suite
 docs/            # Physics derivations and assumptions

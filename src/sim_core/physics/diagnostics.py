@@ -46,6 +46,11 @@ def max_ball_overlap(balls: list[Ball]) -> float:
     return max_penetration
 
 
+def count_pocketed_balls(balls: list[Ball]) -> int:
+    """Return the number of inactive (pocketed) balls."""
+    return sum(1 for ball in balls if not ball.active)
+
+
 def count_moving_balls(
     balls: list[Ball],
     velocity_stop_threshold: float,

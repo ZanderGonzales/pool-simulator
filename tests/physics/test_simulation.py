@@ -15,7 +15,10 @@ def _interior_start():
 def test_simulation_step_advances_time() -> None:
     sim = Simulation(
         balls=[Ball(id=0, position=_interior_start(), velocity=vec2(1, 0))],
-        table=TableConfig(rolling_resistance_coefficient=0.0),
+        table=TableConfig(
+            rolling_resistance_coefficient=0.0,
+            sliding_friction_coefficient=0.0,
+        ),
         config=SimulationConfig(dt=0.01),
     )
     sim.step()
@@ -39,7 +42,10 @@ def test_run_fixed_steps() -> None:
     start = _interior_start()
     sim = Simulation(
         balls=[Ball(id=0, position=start, velocity=vec2(1, 0))],
-        table=TableConfig(rolling_resistance_coefficient=0.0),
+        table=TableConfig(
+            rolling_resistance_coefficient=0.0,
+            sliding_friction_coefficient=0.0,
+        ),
         config=SimulationConfig(dt=0.01),
     )
     executed = sim.run(steps=10)

@@ -14,7 +14,10 @@ from sim_core.utils.vectors import vec2
 
 
 def test_position_update_no_friction() -> None:
-    table = TableConfig(rolling_resistance_coefficient=0.0)
+    table = TableConfig(
+        rolling_resistance_coefficient=0.0,
+        sliding_friction_coefficient=0.0,
+    )
     ball = Ball(id=0, position=vec2(0.0, 0.0), velocity=vec2(2.0, 1.0))
     dt = 0.01
     n_steps = 100
@@ -61,7 +64,10 @@ def test_stopping_time_and_distance_match_kinematics() -> None:
 
 
 def test_single_step_stops_at_exact_stopping_distance() -> None:
-    table = TableConfig(rolling_resistance_coefficient=0.02)
+    table = TableConfig(
+        rolling_resistance_coefficient=0.02,
+        sliding_friction_coefficient=0.0,
+    )
     v0 = 1.0
     ball = Ball(id=0, position=vec2(0.0, 0.0), velocity=vec2(v0, 0.0))
 
@@ -72,7 +78,10 @@ def test_single_step_stops_at_exact_stopping_distance() -> None:
 
 
 def test_single_step_matches_closed_form_before_stopping() -> None:
-    table = TableConfig(rolling_resistance_coefficient=0.02)
+    table = TableConfig(
+        rolling_resistance_coefficient=0.02,
+        sliding_friction_coefficient=0.0,
+    )
     v0 = 1.0
     dt = 0.5
     ball = Ball(id=0, position=vec2(0.0, 0.0), velocity=vec2(v0, 0.0))

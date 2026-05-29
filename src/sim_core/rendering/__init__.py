@@ -1,1 +1,1 @@
-"""Visualization layer (Phase 6)."""
+"""Visualization layer (Phase 8)."""

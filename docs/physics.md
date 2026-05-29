@@ -280,14 +280,48 @@ not fully conserved once sliding friction and inelastic tangential impulses act.
 **Diagnostics / snapshot:** `rotational_kinetic_energy`, `total_energy`, and
 `omega` per ball in `snapshot()`.
 
-**Explicitly not modeled:** 3D spin vector, Magnus force, pockets, cue impact
-beyond initial conditions, cushion throw beyond existing tangential damping.
+**Explicitly not modeled (Phase 5):** 3D spin vector, Magnus force, pockets,
+dynamic cue–ball contact, cushion throw beyond tangential damping.
+
+## Phase 6: Table realism (pockets, rails, cue offsets, skidding)
+
+Phase 6 adds league-plausible table behavior on top of the Phase 5 spin model.
+
+**Pockets:** six default corner/side pockets (`default_pockets()`). After each
+timestep, an active ball whose center lies within `pocket.radius` of a pocket
+center is deactivated and stopped. Balls already outside the playable rectangle
+are skipped so off-table test setups are not pocketed accidentally.
+
+**Rail spin:** cushion contacts apply a tangential impulse capped by Coulomb
+friction with default \(\mu_\text{rail} = 0.25\). Normal reflection still uses
+restitution from `TableConfig`. Set `rail_friction=0` to recover specular
+reflection in tests.
+
+**Cue strike:** `CueStrike(speed, aim_direction, hit_offset_parallel,
+hit_offset_perpendicular)` maps normalized hit offsets to initial velocity and
+\(\omega_z\) via `to_shot_params()`. Positive parallel offset is follow (top
+spin along aim); negative is draw. `create_break_setup(cue_strike=...)` wires
+this into the break factory. This remains an **initial-condition** model, not a
+time-resolved cue–ball impact.
+
+**Cloth / integrator routing:** `step_ball` uses the spin integrator when
+\(\omega \neq 0\) or when \(\|\mathbf{v}_\text{slip}\|\) exceeds
+`sliding_speed_threshold` with \(\mu_s > 0\), so a sliding ball with no spin
+still loses speed through kinetic friction. Pure rolling uses Phase 1 rolling
+resistance plus optional spin decay. Slip remains **motion-aligned**:
+\(\mathbf{v}_\text{slip} = \mathbf{v} - \omega_z r \hat{\mathbf{v}}\).
+
+**Diagnostics / snapshot:** `count_pocketed_balls`, pocket centers in
+`snapshot()["table"]["pockets"]`.
+
+**Still not modeled:** 3D \(\boldsymbol{\omega}\), Magnus force, dynamic cue
+impact, visualization, shot optimization (Phases 7–10).
 
 ## Not yet modeled
 
-- Pockets and table boundary constraints
-- Cue strike impulse model (dynamic cue–ball contact)
-- Visualization and inverse shot optimization (later phases)
+- Full 3D angular velocity and side-spin physics (Phase 7)
+- Pygame visualization and click-to-strike UI (Phase 8)
+- Inverse shot optimization (Phase 9)
 
 ## Validation
 
@@ -307,3 +341,6 @@ The tests compare implementation results against the derived equations:
 - Slip velocity near zero when \(|\mathbf{v}| \approx |\omega| r\) (pure rolling)
 - Spin decay under cloth friction; sliding balls lose speed and spin
 - Tangential ball-ball impulse changes \(\omega\) and respects Coulomb cap
+- Pocket capture deactivates balls; rail friction reduces tangential rebound
+- `CueStrike` follow/draw offsets set cue \(\omega_z\) sign on break setup
+- Skidding balls (\(\omega=0\), \(\mu_s>0\)) slow through the sliding cloth path

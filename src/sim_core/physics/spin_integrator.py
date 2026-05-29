@@ -16,20 +16,11 @@ Vec2 = NDArray[np.float64]
 _VELOCITY_EPS = 1e-12
 
 
-def perpendicular_ccw(v: Vec2) -> Vec2:
-    """Unit vector 90 degrees counter-clockwise from v (zero if v has zero length)."""
-    length = norm(v)
-    if length < _VELOCITY_EPS:
-        return vec2(0.0, 0.0)
-    return vec2(-v[1] / length, v[0] / length)
-
-
 def slip_velocity(ball: Ball) -> Vec2:
     """
     Slip velocity at the cloth contact for a 2D rigid disk.
 
-    Uses v_slip = v + omega x r_contact with a lumped 2D contact model.
-    With r_contact chosen from heading, this reduces to motion-aligned slip.
+    Motion-aligned lumped model: v_slip = v - omega_z * r * v_hat.
     When speed is near zero, a fixed reference axis avoids singularities.
     """
     v = ball.velocity
@@ -41,6 +32,11 @@ def slip_velocity(ball: Ball) -> Vec2:
     return v - ball.omega * r * v_hat
 
 
+def slip_speed(ball: Ball) -> float:
+    """Return the magnitude of cloth slip velocity."""
+    return norm(slip_velocity(ball))
+
+
 def sphere_inertia(mass: float, radius: float) -> float:
     """Moment of inertia for a solid sphere about the vertical axis."""
     return 0.4 * mass * radius * radius
@@ -50,9 +46,9 @@ def apply_cloth_friction(ball: Ball, table: TableConfig, dt: float) -> None:
     """
     Update velocity and omega from cloth friction (sliding or rolling regime).
 
-    Sliding: apply kinetic friction force opposite slip with |F| = mu_s * m * g.
-    Rolling: when slip is small, use rolling resistance and optional spin decay
-    d_omega/dt = -k_omega * omega.
+    Sliding: kinetic friction opposite slip, |F| <= mu_s * m * g, with coupled
+    spin adjustment along the motion direction. Rolling: Phase 1 rolling
+    resistance plus optional spin decay.
     """
     if not ball.active or dt <= 0.0:
         return
@@ -60,6 +56,7 @@ def apply_cloth_friction(ball: Ball, table: TableConfig, dt: float) -> None:
     slip = slip_velocity(ball)
     slip_speed = norm(slip)
     speed = ball.speed
+
     if (
         speed < table.velocity_stop_threshold
         and abs(ball.omega) < table.omega_stop_threshold

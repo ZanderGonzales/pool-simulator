@@ -10,6 +10,7 @@ from sim_core.physics.collision.rail_resolver import resolve_ball_rail_contacts
 from sim_core.physics.collision.resolver import resolve_ball_ball_contacts, separate_balls
 from sim_core.physics.integrator import step_ball
 from sim_core.physics.table import TableConfig
+from sim_core.utils.vectors import norm
 
 
 @dataclass
@@ -46,6 +47,7 @@ class Simulation:
         self._resolve_ball_ball_collisions()
         self._resolve_rail_collisions()
         self._resolve_ball_ball_collisions()
+        self._resolve_pockets()
         self.time += dt
 
     def _resolve_ball_ball_collisions(self) -> None:
@@ -73,6 +75,24 @@ class Simulation:
             if not contacts:
                 break
             resolve_ball_rail_contacts(self.balls, contacts, self.table)
+
+    def _resolve_pockets(self) -> None:
+        """Deactivate balls captured by any pocket region."""
+        for ball in self.balls:
+            if not ball.active:
+                continue
+            if (
+                ball.position[0] < 0.0
+                or ball.position[0] > self.table.width
+                or ball.position[1] < 0.0
+                or ball.position[1] > self.table.height
+            ):
+                continue
+            for pocket in self.table.pockets:
+                if norm(ball.position - pocket.center) <= pocket.radius:
+                    ball.active = False
+                    ball.stop()
+                    break
 
     def all_stopped(self) -> bool:
         return all(

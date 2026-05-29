@@ -8,7 +8,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from sim_core.physics.ball import Ball
-from sim_core.physics.shot import ShotParams
+from sim_core.physics.shot import CueStrike, ShotParams
 from sim_core.utils.constants import (
     BALL_RADIUS_M,
     DEFAULT_FOOT_SPOT_X_FRACTION,
@@ -163,6 +163,7 @@ def create_break_setup(
     *,
     break_speed: float = 3.0,
     shot: ShotParams | None = None,
+    cue_strike: CueStrike | None = None,
     foot_spot: Vec2 | None = None,
     head_spot: Vec2 | None = None,
     table_width: float = TABLE_WIDTH_M,
@@ -171,8 +172,13 @@ def create_break_setup(
     radius: float = BALL_RADIUS_M,
 ) -> BreakSetup:
     """Create a cue ball plus triangle rack with the cue moving toward the apex."""
+    velocity = vec2(-break_speed, 0.0)
     if shot is not None:
         break_speed = shot.speed
+        velocity = vec2(-break_speed, 0.0)
+    if cue_strike is not None:
+        shot = cue_strike.to_shot_params(radius=radius)
+        velocity = cue_strike.velocity_vector()
     rack = triangle_rack(
         foot_spot=foot_spot,
         table_width=table_width,
@@ -187,7 +193,7 @@ def create_break_setup(
         gap=cue_gap,
         radius=radius,
     )
-    cue_ball.velocity = vec2(-break_speed, 0.0)
+    cue_ball.velocity = velocity
     if shot is not None:
         cue_ball.omega = shot.omega
 

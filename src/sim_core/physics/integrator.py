@@ -81,10 +81,10 @@ def integrate_position(ball: Ball, dt: float) -> None:
 
 
 def step_ball(ball: Ball, table: TableConfig, dt: float) -> None:
-    """Single-timestep update with spin-aware cloth friction when omega is non-zero."""
-    if ball.omega != 0.0:
-        from sim_core.physics.spin_integrator import step_ball_spin
+    """Single-timestep update with rolling/sliding cloth regimes."""
+    from sim_core.physics.spin_integrator import step_ball_spin
 
+    if ball.omega != 0.0:
         step_ball_spin(ball, table, dt)
         return
     apply_rolling_resistance(ball, table, dt)

@@ -166,14 +166,17 @@ def test_non_head_on_elastic_without_ball_friction() -> None:
 
 def test_simulation_resolves_collision_step() -> None:
     r = BALL_RADIUS_M
-    ball_a = Ball(id=0, position=vec2(-r, 0.0), velocity=vec2(2.0, 0.0))
-    ball_b = Ball(id=1, position=vec2(r, 0.0), velocity=vec2(-2.0, 0.0))
+    table = TableConfig(
+        rolling_resistance_coefficient=0.0,
+        coefficient_of_restitution=1.0,
+    )
+    mid_y = 0.5 * table.height
+    mid_x = 0.5 * table.width
+    ball_a = Ball(id=0, position=vec2(mid_x - r, mid_y), velocity=vec2(2.0, 0.0))
+    ball_b = Ball(id=1, position=vec2(mid_x + r, mid_y), velocity=vec2(-2.0, 0.0))
     sim = Simulation(
         balls=[ball_a, ball_b],
-        table=TableConfig(
-            rolling_resistance_coefficient=0.0,
-            coefficient_of_restitution=1.0,
-        ),
+        table=table,
         config=SimulationConfig(dt=0.001, collision_iterations=4),
     )
 

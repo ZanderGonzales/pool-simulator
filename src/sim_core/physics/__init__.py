@@ -14,10 +14,10 @@ from sim_core.physics.diagnostics import (
     total_kinetic_energy,
 )
 from sim_core.physics.rack import BreakSetup, RackLayout, create_break_setup, triangle_rack
-from sim_core.physics.shot import ShotParams
+from sim_core.physics.shot import CueStrike, ShotParams
 from sim_core.physics.spin_integrator import apply_cloth_friction, slip_velocity
 from sim_core.physics.simulation import Simulation, SimulationConfig
-from sim_core.physics.table import CushionSegment, TableConfig
+from sim_core.physics.table import CushionSegment, Pocket, TableConfig
 
 __all__ = [
     "Ball",
@@ -25,6 +25,8 @@ __all__ = [
     "BallRailContact",
     "BreakSetup",
     "CushionSegment",
+    "CueStrike",
+    "Pocket",
     "RackLayout",
     "Simulation",
     "SimulationConfig",

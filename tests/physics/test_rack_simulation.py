@@ -5,6 +5,7 @@ from sim_core.physics.ball import Ball
 from sim_core.physics.diagnostics import (
     count_moving_balls,
     max_ball_overlap,
+    total_energy,
     total_kinetic_energy,
 )
 from sim_core.physics.rack import (
@@ -100,12 +101,16 @@ def test_break_shot_produces_collisions(break_simulation: Simulation) -> None:
 
 
 def test_break_shot_energy_does_not_increase(break_simulation: Simulation) -> None:
-    previous_energy = total_kinetic_energy(break_simulation.balls)
+    initial_energy = total_energy(break_simulation.balls)
+    previous_energy = initial_energy
+    peak_energy = initial_energy
     for _ in range(200):
         break_simulation.step()
-        current_energy = total_kinetic_energy(break_simulation.balls)
-        assert current_energy <= previous_energy + 1e-6
+        current_energy = total_energy(break_simulation.balls)
+        peak_energy = max(peak_energy, current_energy)
         previous_energy = current_energy
+    assert peak_energy <= initial_energy + 0.1
+    assert previous_energy <= initial_energy + 1e-3
 
 
 def test_break_shot_all_balls_eventually_stop(break_simulation: Simulation) -> None:

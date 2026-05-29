@@ -18,7 +18,7 @@ def _kinetic_energy(ball: Ball) -> float:
 
 
 def test_detects_ball_rail_penetration_by_closest_point() -> None:
-    table = TableConfig(rolling_resistance_coefficient=0.0)
+    table = TableConfig(rolling_resistance_coefficient=0.0, rail_friction=0.0)
     right_cushion = table.cushions[1]
     ball = Ball(
         id=0,
@@ -36,7 +36,7 @@ def test_detects_ball_rail_penetration_by_closest_point() -> None:
 
 def test_separates_overlap_when_moving_away_from_cushion() -> None:
     """Penetration is corrected even when dot(v, n) >= 0 (no velocity reflection)."""
-    table = TableConfig(rolling_resistance_coefficient=0.0)
+    table = TableConfig(rolling_resistance_coefficient=0.0, rail_friction=0.0)
     ball = Ball(
         id=0,
         position=vec2(table.width - 0.5 * BALL_RADIUS_M, 0.5 * table.height),
@@ -58,6 +58,7 @@ def test_specular_reflection_angle_off_cushion() -> None:
     table = TableConfig(
         rolling_resistance_coefficient=0.0,
         coefficient_of_restitution=1.0,
+        rail_friction=0.0,
     )
     ball = Ball(
         id=0,
@@ -81,6 +82,7 @@ def test_high_speed_ball_does_not_tunnel_through_rail() -> None:
     table = TableConfig(
         rolling_resistance_coefficient=0.0,
         coefficient_of_restitution=1.0,
+        rail_friction=0.0,
     )
     ball = Ball(
         id=0,
@@ -104,6 +106,7 @@ def test_inelastic_cushion_reduces_energy_by_restitution() -> None:
     table = TableConfig(
         rolling_resistance_coefficient=0.0,
         coefficient_of_restitution=e,
+        rail_friction=0.0,
     )
     ball = Ball(
         id=0,

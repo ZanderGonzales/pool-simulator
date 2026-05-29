@@ -9,7 +9,7 @@ from sim_core.physics.ball import Ball
 from sim_core.physics.integrator import apply_rolling_resistance
 from sim_core.physics.table import TableConfig
 from sim_core.utils.constants import GRAVITY_MPS2
-from sim_core.utils.vectors import norm, vec2
+from sim_core.utils.vectors import dot, norm, vec2
 
 Vec2 = NDArray[np.float64]
 
@@ -28,10 +28,9 @@ def slip_velocity(ball: Ball) -> Vec2:
     """
     Slip velocity at the cloth contact for a 2D rigid disk.
 
-    Uses v_slip = v - omega_z * r * v_hat (motion-aligned slip). This lumped 2D
-    model maps positive omega to top spin and negative omega to draw along the
-    current velocity direction. When speed is near zero, a fixed reference axis
-    avoids singularities. Side english and full contact-patch physics are not modeled.
+    Uses v_slip = v + omega x r_contact with a lumped 2D contact model.
+    With r_contact chosen from heading, this reduces to motion-aligned slip.
+    When speed is near zero, a fixed reference axis avoids singularities.
     """
     v = ball.velocity
     speed = norm(v)
@@ -51,9 +50,9 @@ def apply_cloth_friction(ball: Ball, table: TableConfig, dt: float) -> None:
     """
     Update velocity and omega from cloth friction (sliding or rolling regime).
 
-    Sliding: reduce slip speed by up to mu_s * g * dt along -slip_hat, coupled to spin.
-    Rolling: when slip is small or spin exceeds rim speed, use rolling resistance and
-    optional spin decay d_omega/dt = -k_omega * omega.
+    Sliding: apply kinetic friction force opposite slip with |F| = mu_s * m * g.
+    Rolling: when slip is small, use rolling resistance and optional spin decay
+    d_omega/dt = -k_omega * omega.
     """
     if not ball.active or dt <= 0.0:
         return
@@ -61,8 +60,6 @@ def apply_cloth_friction(ball: Ball, table: TableConfig, dt: float) -> None:
     slip = slip_velocity(ball)
     slip_speed = norm(slip)
     speed = ball.speed
-    rim_speed = abs(ball.omega) * ball.radius
-
     if (
         speed < table.velocity_stop_threshold
         and abs(ball.omega) < table.omega_stop_threshold
@@ -70,19 +67,21 @@ def apply_cloth_friction(ball: Ball, table: TableConfig, dt: float) -> None:
         ball.stop()
         return
 
-    if slip_speed < table.sliding_speed_threshold or (speed > _VELOCITY_EPS and rim_speed > speed * 1.05):
+    if slip_speed < table.sliding_speed_threshold:
         _apply_rolling_regime(ball, table, dt)
         return
 
     max_reduction = table.sliding_friction_coefficient * GRAVITY_MPS2 * dt
     reduction = min(max_reduction, slip_speed)
     slip_hat = slip / slip_speed
-
     ball.velocity = ball.velocity - slip_hat * reduction
 
-    if speed >= _VELOCITY_EPS:
-        v_hat = ball.velocity / norm(ball.velocity) if norm(ball.velocity) >= _VELOCITY_EPS else vec2(1.0, 0.0)
-        ball.omega += (reduction / ball.radius) * float(np.dot(slip_hat, v_hat))
+    if ball.speed >= _VELOCITY_EPS:
+        v_hat = ball.velocity / max(ball.speed, _VELOCITY_EPS)
+    else:
+        v_hat = vec2(1.0, 0.0)
+    slip_parallel = dot(slip, v_hat)
+    ball.omega += (reduction / ball.radius) * float(np.sign(slip_parallel))
 
     if table.spin_decay_rate > 0.0:
         ball.omega *= max(0.0, 1.0 - table.spin_decay_rate * dt)

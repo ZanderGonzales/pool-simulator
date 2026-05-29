@@ -9,6 +9,8 @@ from sim_core.utils.constants import (
     DEFAULT_BALL_BALL_FRICTION,
     DEFAULT_COEFFICIENT_OF_RESTITUTION,
     DEFAULT_OMEGA_STOP_THRESHOLD,
+    DEFAULT_POCKET_RADIUS_M,
+    DEFAULT_RAIL_FRICTION,
     DEFAULT_ROLLING_RESISTANCE_COEFFICIENT,
     DEFAULT_SLIDING_FRICTION_COEFFICIENT,
     DEFAULT_SPIN_DECAY_RATE,
@@ -68,6 +70,34 @@ def default_cushions(width: float, height: float) -> tuple[CushionSegment, ...]:
 
 
 @dataclass(frozen=True)
+class Pocket:
+    """Simple circular pocket capture region."""
+
+    center: Vec2
+    radius: float = DEFAULT_POCKET_RADIUS_M
+
+    def __post_init__(self) -> None:
+        center = np.asarray(self.center, dtype=np.float64).copy()
+        if center.shape != (2,):
+            raise ValueError("pocket center must be a 2D vector")
+        if self.radius <= 0.0:
+            raise ValueError("pocket radius must be positive")
+        object.__setattr__(self, "center", center)
+
+
+def default_pockets(width: float, height: float, radius: float) -> tuple[Pocket, ...]:
+    """Return six regulation-style pockets: 4 corners and 2 side pockets."""
+    return (
+        Pocket(center=vec2(0.0, 0.0), radius=radius),
+        Pocket(center=vec2(width, 0.0), radius=radius),
+        Pocket(center=vec2(width, height), radius=radius),
+        Pocket(center=vec2(0.0, height), radius=radius),
+        Pocket(center=vec2(0.5 * width, 0.0), radius=radius),
+        Pocket(center=vec2(0.5 * width, height), radius=radius),
+    )
+
+
+@dataclass(frozen=True)
 class TableConfig:
     """Table geometry, friction, and spin parameters."""
 
@@ -79,10 +109,13 @@ class TableConfig:
     cushion_tangential_damping: float = 0.0
     sliding_friction_coefficient: float = DEFAULT_SLIDING_FRICTION_COEFFICIENT
     ball_ball_friction: float = DEFAULT_BALL_BALL_FRICTION
+    rail_friction: float = DEFAULT_RAIL_FRICTION
     spin_decay_rate: float = DEFAULT_SPIN_DECAY_RATE
     omega_stop_threshold: float = DEFAULT_OMEGA_STOP_THRESHOLD
     sliding_speed_threshold: float = SLIDING_SPEED_THRESHOLD
+    pocket_radius: float = DEFAULT_POCKET_RADIUS_M
     cushions: tuple[CushionSegment, ...] = field(default_factory=tuple)
+    pockets: tuple[Pocket, ...] = field(default_factory=tuple)
 
     def __post_init__(self) -> None:
         if self.width <= 0 or self.height <= 0:
@@ -99,11 +132,21 @@ class TableConfig:
             raise ValueError("sliding_friction_coefficient must be non-negative")
         if self.ball_ball_friction < 0:
             raise ValueError("ball_ball_friction must be non-negative")
+        if self.rail_friction < 0:
+            raise ValueError("rail_friction must be non-negative")
         if self.spin_decay_rate < 0:
             raise ValueError("spin_decay_rate must be non-negative")
         if self.omega_stop_threshold <= 0:
             raise ValueError("omega_stop_threshold must be positive")
         if self.sliding_speed_threshold <= 0:
             raise ValueError("sliding_speed_threshold must be positive")
+        if self.pocket_radius <= 0:
+            raise ValueError("pocket_radius must be positive")
         if not self.cushions:
             object.__setattr__(self, "cushions", default_cushions(self.width, self.height))
+        if not self.pockets:
+            object.__setattr__(
+                self,
+                "pockets",
+                default_pockets(self.width, self.height, self.pocket_radius),
+            )

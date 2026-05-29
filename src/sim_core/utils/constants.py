@@ -30,11 +30,17 @@ DEFAULT_SLIDING_FRICTION_COEFFICIENT = 0.2
 # Coulomb cap on ball-ball tangential impulse relative to normal impulse
 DEFAULT_BALL_BALL_FRICTION = 0.15
 
+# Coulomb cap on rail tangential impulse relative to normal impulse
+DEFAULT_RAIL_FRICTION = 0.25
+
 # Exponential spin decay rate in rolling regime (1/s)
 DEFAULT_SPIN_DECAY_RATE = 2.0
 
 # Slip speed below which rolling resistance replaces sliding friction (m/s)
 SLIDING_SPEED_THRESHOLD = 0.01
+
+# Pocket capture radius for simple circular pocket model (m)
+DEFAULT_POCKET_RADIUS_M = 2.2 * BALL_RADIUS_M
 
 # Ball-ball coefficient of restitution (1 = elastic, 0 = inelastic)
 DEFAULT_COEFFICIENT_OF_RESTITUTION = 0.95

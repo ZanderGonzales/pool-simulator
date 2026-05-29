@@ -7,8 +7,9 @@ from numpy.typing import NDArray
 
 from sim_core.physics.ball import Ball
 from sim_core.physics.collision.rail_detector import BallRailContact
+from sim_core.physics.spin_integrator import sphere_inertia
 from sim_core.physics.table import TableConfig
-from sim_core.utils.vectors import dot
+from sim_core.utils.vectors import dot, vec2
 
 Vec2 = NDArray[np.float64]
 
@@ -45,6 +46,19 @@ def resolve_ball_rail_contact(
     e = table.coefficient_of_restitution
     damping = table.cushion_tangential_damping
     ball.velocity = (-e * normal_velocity) + ((1.0 - damping) * tangent_velocity)
+
+    tangent = vec2(-normal[1], normal[0])
+    tangent_speed = dot(ball.velocity, tangent)
+    if abs(tangent_speed) > 0.0 and table.rail_friction > 0.0:
+        normal_impulse = (1.0 + e) * ball.mass * (-normal_speed)
+        uncapped_impulse = -ball.mass * tangent_speed
+        max_impulse = table.rail_friction * normal_impulse
+        tangential_impulse = float(np.clip(uncapped_impulse, -max_impulse, max_impulse))
+        ball.velocity = ball.velocity + (tangential_impulse / ball.mass) * tangent
+
+        inertia = sphere_inertia(ball.mass, ball.radius)
+        ball.omega = ball.omega - (ball.radius / inertia) * tangential_impulse
+
     return True
 
 

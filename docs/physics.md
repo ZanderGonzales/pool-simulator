@@ -100,7 +100,11 @@ issues from explicit Euler integration.
 `velocity_stop_threshold` clamps tiny speeds to zero. It is a numerical
 cleanup threshold, not part of the physical model.
 
-## Phase 2: Ball-ball collisions (frictionless, normal impulse)
+## Phase 2: Ball-ball collisions (normal impulse)
+
+Phase 2 introduced normal impulse only. Phase 5 added tangential impulse with
+default \(\mu_{bb} = 0.15\). The derivation below is the normal component;
+tangential terms are in the Phase 5 section.
 
 Equal-mass spheres collide along the line of centers. The **contact normal** \(\mathbf{n}\)
 points from ball A toward ball B:
@@ -214,7 +218,8 @@ table is `sqrt(3) * radius`; balls within a row are spaced `2 * radius`.
 Rows extend from the apex toward the foot rail (-x). The cue ball starts on the
 head side with velocity toward the apex.
 
-**Assumptions:** no pockets, no spin transfer, frictionless ball-ball contacts,
+**Assumptions:** no pockets, no cue english on the break, ball-ball contacts use
+default \(\mu_{bb}\) from Phase 5,
 and O(n^2) all-pairs collision detection (acceptable for 16 balls).
 
 Diagnostics exposed for tests:
@@ -266,8 +271,8 @@ not fully conserved once sliding friction and inelastic tangential impulses act.
 - Relative tangential velocity at contact includes spin:
   \(v_{\text{rel},t} = (\mathbf{v}_B - \mathbf{v}_A)\cdot\mathbf{t} + r(\omega_A + \omega_B)\)
 - Impulse capped by Coulomb friction \(|J_t| \le \mu_{bb} |J_n|\)
-- Default \(\mu_{bb} = 0\) preserves Phase 2–4 frictionless behavior; set
-  `ball_ball_friction` for spin transfer at contacts.
+- Default \(\mu_{bb} = 0.15\) (`DEFAULT_BALL_BALL_FRICTION`). Set
+  `ball_ball_friction=0` only to reproduce frictionless normal-only contacts.
 
 **Cue english:** `ShotParams(speed, omega)` sets initial cue velocity and
 \(\omega_z\) in `create_break_setup` (no full cue–ball impact model).

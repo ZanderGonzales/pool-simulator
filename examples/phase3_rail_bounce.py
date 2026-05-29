@@ -24,7 +24,7 @@ def main() -> None:
         config=SimulationConfig(dt=0.01, collision_iterations=4),
     )
 
-    print("Phase 3 — rail bounce")
+    print("Phase 3 - rail bounce")
     print(f"Table: {table.width:.2f} m x {table.height:.2f} m")
     print(f"Restitution e={table.coefficient_of_restitution}\n")
 

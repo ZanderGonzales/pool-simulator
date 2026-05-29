@@ -35,7 +35,7 @@ def test_detects_ball_rail_penetration_by_closest_point() -> None:
 
 
 def test_separates_overlap_when_moving_away_from_cushion() -> None:
-    """Penetration is corrected even when v·n >= 0 (no velocity reflection)."""
+    """Penetration is corrected even when dot(v, n) >= 0 (no velocity reflection)."""
     table = TableConfig(rolling_resistance_coefficient=0.0)
     ball = Ball(
         id=0,

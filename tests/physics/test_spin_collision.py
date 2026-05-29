@@ -8,7 +8,7 @@ from sim_core.physics.collision.resolver import (
     tangential_direction,
 )
 from sim_core.physics.table import TableConfig
-from sim_core.utils.constants import BALL_RADIUS_M
+from sim_core.utils.constants import BALL_RADIUS_M, DEFAULT_BALL_BALL_FRICTION
 from sim_core.utils.vectors import dot, vec2
 
 
@@ -18,13 +18,13 @@ def _touching_with_spin(
     omega_b: float = 0.0,
     speed_a: float = 1.0,
     speed_b: float = -0.5,
-    mu_bb: float = 0.3,
-) -> tuple[Ball, Ball, TableConfig, float]:
+    ball_ball_friction: float = DEFAULT_BALL_BALL_FRICTION,
+) -> tuple[Ball, Ball, TableConfig]:
     r = BALL_RADIUS_M
     table = TableConfig(
         rolling_resistance_coefficient=0.0,
         coefficient_of_restitution=0.95,
-        ball_ball_friction=mu_bb,
+        ball_ball_friction=ball_ball_friction,
     )
     overlap = 1e-6
     ball_a = Ball(
@@ -39,11 +39,11 @@ def _touching_with_spin(
         velocity=vec2(speed_b, 0.0),
         omega=omega_b,
     )
-    return ball_a, ball_b, table, mu_bb
+    return ball_a, ball_b, table
 
 
 def test_tangential_impulse_changes_omega() -> None:
-    ball_a, ball_b, table, _ = _touching_with_spin()
+    ball_a, ball_b, table = _touching_with_spin()
     omega_a_before = ball_a.omega
     omega_b_before = ball_b.omega
     contacts = find_ball_ball_contacts([ball_a, ball_b])
@@ -56,14 +56,13 @@ def test_tangential_impulse_changes_omega() -> None:
 
 
 def test_friction_impulse_capped() -> None:
-    mu_bb = 0.2
-    ball_a, ball_b, table, mu_bb = _touching_with_spin(
+    ball_a, ball_b, table = _touching_with_spin(
         omega_a=20.0,
         omega_b=-15.0,
         speed_a=2.0,
         speed_b=-1.0,
-        mu_bb=mu_bb,
     )
+    mu_bb = table.ball_ball_friction
     contacts = find_ball_ball_contacts([ball_a, ball_b])
     normal = contacts[0].normal
     tangent = tangential_direction(normal)
@@ -74,8 +73,6 @@ def test_friction_impulse_capped() -> None:
 
     v_a = ball_a.velocity.copy()
     v_b = ball_b.velocity.copy()
-    omega_a = ball_a.omega
-    omega_b = ball_b.omega
 
     resolve_ball_ball_contact(ball_a, ball_b, contacts[0], table)
 
@@ -86,5 +83,4 @@ def test_friction_impulse_capped() -> None:
 
     assert abs(tangential_impulse_a) == pytest.approx(abs(tangential_impulse_b), rel=1e-4)
     assert abs(tangential_impulse_a) <= mu_bb * normal_impulse + 1e-9
-
     assert normal_impulse > 0.0

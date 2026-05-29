@@ -9,7 +9,7 @@ from sim_core.utils.vectors import vec2
 
 def main() -> None:
     table = TableConfig(rolling_resistance_coefficient=0.02)
-    ball = Ball(id=0, position=vec2(0.5, 0.25), velocity=vec2(2.0, 0.0))
+    ball = Ball(id=0, position=vec2(0.5, 0.25), velocity=vec2(0.4, 0.0))
     initial_speed = ball.speed
     sim = Simulation(
         balls=[ball],

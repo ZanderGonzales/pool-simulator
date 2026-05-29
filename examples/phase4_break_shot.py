@@ -18,8 +18,11 @@ def main() -> None:
         config=SimulationConfig(dt=0.005, collision_iterations=8),
     )
 
-    print("Phase 4 — break shot")
-    print(f"Object balls: {len(setup.balls) - 1}, cue speed: {setup.balls[setup.cue_ball_index].speed:.2f} m/s\n")
+    print("Phase 4 - break shot")
+    print(
+        f"Object balls: {len(setup.balls) - 1}, "
+        f"cue speed: {setup.balls[setup.cue_ball_index].speed:.2f} m/s\n"
+    )
 
     while not sim.all_stopped() and sim.time < 30.0:
         sim.step()

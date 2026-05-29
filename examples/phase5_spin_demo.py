@@ -38,7 +38,7 @@ def _run_single_ball(label: str, omega: float, *, steps: int = 300) -> None:
 
 
 def _run_break(omega_cue: float) -> None:
-    table = TableConfig(ball_ball_friction=0.15)
+    table = TableConfig()
     setup = create_break_setup(shot=ShotParams(speed=3.0, omega=omega_cue))
     sim = Simulation(
         balls=list(setup.balls),

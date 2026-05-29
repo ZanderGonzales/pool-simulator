@@ -28,7 +28,7 @@ DEFAULT_OMEGA_STOP_THRESHOLD = 1e-3
 DEFAULT_SLIDING_FRICTION_COEFFICIENT = 0.2
 
 # Coulomb cap on ball-ball tangential impulse relative to normal impulse
-DEFAULT_BALL_BALL_FRICTION = 0.0
+DEFAULT_BALL_BALL_FRICTION = 0.15
 
 # Exponential spin decay rate in rolling regime (1/s)
 DEFAULT_SPIN_DECAY_RATE = 2.0

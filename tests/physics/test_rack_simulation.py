@@ -1,8 +1,18 @@
 import numpy as np
 import pytest
 
-from sim_core.physics.diagnostics import max_ball_overlap, total_kinetic_energy
-from sim_core.physics.rack import RACK_BALL_COUNT, create_break_setup, triangle_rack, validate_no_overlaps
+from sim_core.physics.ball import Ball
+from sim_core.physics.diagnostics import (
+    count_moving_balls,
+    max_ball_overlap,
+    total_kinetic_energy,
+)
+from sim_core.physics.rack import (
+    RACK_BALL_COUNT,
+    create_break_setup,
+    triangle_rack,
+    validate_no_overlaps,
+)
 from sim_core.physics.simulation import Simulation, SimulationConfig
 from sim_core.physics.table import TableConfig
 from sim_core.utils.constants import BALL_RADIUS_M, ROW_SPACING_M
@@ -35,7 +45,22 @@ def test_triangle_rack_has_15_non_overlapping_balls() -> None:
 
     apex = rack.balls[rack.apex_index]
     row_one = rack.balls[1]
-    assert apex.position[0] - row_one.position[0] == pytest.approx(ROW_SPACING_M, rel=1e-5)
+    assert apex.position[0] - row_one.position[0] == pytest.approx(
+        ROW_SPACING_M,
+        rel=1e-5,
+    )
+
+
+def test_triangle_rack_scales_spacing_with_custom_radius() -> None:
+    radius = 0.02
+    rack = triangle_rack(radius=radius)
+    apex = rack.balls[rack.apex_index]
+    row_one = rack.balls[1]
+
+    assert apex.position[0] - row_one.position[0] == pytest.approx(
+        np.sqrt(3.0) * radius
+    )
+    validate_no_overlaps(list(rack.balls))
 
 
 def test_break_setup_places_cue_and_rack() -> None:
@@ -50,6 +75,16 @@ def test_break_setup_places_cue_and_rack() -> None:
     assert cue.velocity[0] < 0.0
     min_distance = cue.radius + apex.radius
     assert norm(cue.position - apex.position) >= min_distance - 1e-9
+
+
+def test_diagnostics_count_only_active_moving_balls() -> None:
+    balls = [
+        Ball(id=0, position=vec2(0.0, 0.0), velocity=vec2(1.0, 0.0)),
+        Ball(id=1, position=vec2(1.0, 0.0), velocity=vec2(1e-5, 0.0)),
+        Ball(id=2, position=vec2(2.0, 0.0), velocity=vec2(1.0, 0.0), active=False),
+    ]
+
+    assert count_moving_balls(balls, velocity_stop_threshold=1e-4) == 1
 
 
 def test_break_shot_produces_collisions(break_simulation: Simulation) -> None:

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import numpy as np
+
 from sim_core.physics.ball import Ball
 from sim_core.physics.spin_integrator import sphere_inertia
 from sim_core.utils.vectors import norm
@@ -19,7 +21,8 @@ def rotational_kinetic_energy(balls: list[Ball]) -> float:
         if not ball.active:
             continue
         inertia = sphere_inertia(ball.mass, ball.radius)
-        energy += 0.5 * inertia * ball.omega * ball.omega
+        omega = ball.angular_velocity
+        energy += 0.5 * inertia * float(np.dot(omega, omega))
     return energy
 
 

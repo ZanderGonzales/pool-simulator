@@ -314,12 +314,42 @@ resistance plus optional spin decay. Slip remains **motion-aligned**:
 **Diagnostics / snapshot:** `count_pocketed_balls`, pocket centers in
 `snapshot()["table"]["pockets"]`.
 
-**Still not modeled:** 3D \(\boldsymbol{\omega}\), Magnus force, dynamic cue
-impact, visualization, shot optimization (Phases 7–10).
+**Still not modeled:** dynamic cue impact, visualization, shot optimization (Phases 8–10).
+
+## Phase 7: 3D angular velocity and side spin
+
+Phase 7 replaces scalar `Ball.omega` with **`angular_velocity: Vec3`** (rad/s,
+z-up). The **`omega`** property remains as **`omega_z`** for follow/draw. Center
+motion stays in the table plane (no jump shots).
+
+**Cloth slip (hybrid lumped model):**
+
+- Follow/draw: \(\mathbf{v}_\text{slip,fd} = \mathbf{v} - \omega_z r \hat{\mathbf{v}}\)
+- Side spin: bottom-contact contribution
+  \(\mathbf{v}_\text{slip,side} = (\boldsymbol{\omega}_{xy} \times \mathbf{r}_\text{bottom})_{xy}\)
+- Combined: \(\mathbf{v}_\text{slip} = \mathbf{v}_\text{slip,fd} + \mathbf{v}_\text{slip,side}\)
+
+Sliding friction updates **v** and full **ω** (torque from horizontal spin
+only during sliding). Low center speed routes to rolling resistance + spin
+decay to avoid runaway \(\omega_z\) at rest.
+
+**Optional swerve:** `TableConfig.swerve_coefficient` (default 0) adds a small
+empirical lateral force proportional to side-spin content along **v** — a tuning
+knob, not first-principles Magnus.
+
+**Collisions:** ball–ball and rail tangential impulses use 3D contact offsets
+and update the full **ω** vector (solid-sphere \(I = \frac{2}{5}mr^2\)).
+
+**Cue strike:** `CueStrike.to_angular_velocity()` maps parallel offset →
+\(\omega_z\), perpendicular offset → spin about the aim axis \((\omega_x, \omega_y)\).
+
+**Snapshot / diagnostics:** `angular_velocity` per ball; rotational energy uses
+\(\|\boldsymbol{\omega}\|\).
+
+**Still not modeled:** ball flight, squirt/FEM cue model, Pygame (Phase 8).
 
 ## Not yet modeled
 
-- Full 3D angular velocity and side-spin physics (Phase 7)
 - Pygame visualization and click-to-strike UI (Phase 8)
 - Inverse shot optimization (Phase 9)
 
@@ -344,3 +374,5 @@ The tests compare implementation results against the derived equations:
 - Pocket capture deactivates balls; rail friction reduces tangential rebound
 - `CueStrike` follow/draw offsets set cue \(\omega_z\) sign on break setup
 - Skidding balls (\(\omega=0\), \(\mu_s>0\)) slow through the sliding cloth path
+- Side-spin slip, optional swerve, and 3D \(\boldsymbol{\omega}\) on collisions
+- `CueStrike` perpendicular offset sets side-spin components on break setup

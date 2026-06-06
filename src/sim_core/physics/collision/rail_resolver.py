@@ -9,9 +9,10 @@ from sim_core.physics.ball import Ball
 from sim_core.physics.collision.rail_detector import BallRailContact
 from sim_core.physics.spin_integrator import sphere_inertia
 from sim_core.physics.table import TableConfig
-from sim_core.utils.vectors import dot, vec2
+from sim_core.utils.vectors import cross3, dot, vec2, vec3
 
 Vec2 = NDArray[np.float64]
+Vec3 = NDArray[np.float64]
 
 
 def separate_ball_from_cushion(ball: Ball, normal: Vec2, penetration: float) -> None:
@@ -19,6 +20,11 @@ def separate_ball_from_cushion(ball: Ball, normal: Vec2, penetration: float) -> 
     if penetration <= 0.0:
         return
     ball.position = ball.position + normal * penetration
+
+
+def _rail_contact_offset(normal: Vec2, radius: float) -> Vec3:
+    """Offset from ball center to the cushion contact point."""
+    return vec3(-normal[0] * radius, -normal[1] * radius, 0.0)
 
 
 def resolve_ball_rail_contact(
@@ -57,7 +63,9 @@ def resolve_ball_rail_contact(
         ball.velocity = ball.velocity + (tangential_impulse / ball.mass) * tangent
 
         inertia = sphere_inertia(ball.mass, ball.radius)
-        ball.omega = ball.omega - (ball.radius / inertia) * tangential_impulse
+        offset = _rail_contact_offset(normal, ball.radius)
+        impulse_vec = vec3(tangent[0] * tangential_impulse, tangent[1] * tangential_impulse, 0.0)
+        ball.angular_velocity = ball.angular_velocity - cross3(offset, impulse_vec) / inertia
 
     return True
 

@@ -143,6 +143,7 @@ class Simulation:
                     "position": ball.position.copy(),
                     "velocity": ball.velocity.copy(),
                     "omega": ball.omega,
+                    "angular_velocity": ball.angular_velocity.copy(),
                     "active": ball.active,
                     "radius": ball.radius,
                 }

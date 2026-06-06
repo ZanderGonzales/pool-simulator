@@ -39,6 +39,9 @@ DEFAULT_SPIN_DECAY_RATE = 2.0
 # Slip speed below which rolling resistance replaces sliding friction (m/s)
 SLIDING_SPEED_THRESHOLD = 0.01
 
+# Empirical lateral acceleration per (rad/s) side spin (m/s^2 per rad/s); 0 = off
+DEFAULT_SWERVE_COEFFICIENT = 0.0
+
 # Pocket capture radius for simple circular pocket model (m)
 DEFAULT_POCKET_RADIUS_M = 2.2 * BALL_RADIUS_M
 

@@ -195,7 +195,7 @@ def create_break_setup(
     )
     cue_ball.velocity = velocity
     if shot is not None:
-        cue_ball.omega = shot.omega
+        cue_ball.angular_velocity = shot.resolved_angular_velocity()
 
     balls = list(rack.balls) + [cue_ball]
     validate_no_overlaps(balls)

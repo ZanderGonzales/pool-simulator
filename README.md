@@ -30,8 +30,12 @@ english via `ShotParams`, rotational diagnostics, and spin tests.
 spin coupling, `CueStrike` hit offsets on break setup, skidding integration when
 \(\omega=0\) but cloth slip is high, pocket diagnostics, and realism tests.
 
-Upcoming: 3D spin vector (Phase 7), Pygame visualization (Phase 8), shot
-optimization (Phase 9), portfolio packaging (Phase 10).
+**Phase 7 complete:** 3D `angular_velocity` on each ball, hybrid cloth slip for
+follow/draw and side spin, full \(\boldsymbol{\omega}\) collision updates,
+optional swerve, side-spin tests, and `phase7_side_spin_demo.py`.
+
+Upcoming: Pygame visualization (Phase 8), shot optimization (Phase 9), portfolio
+packaging (Phase 10).
 
 ## Requirements
 
@@ -62,6 +66,7 @@ python examples/phase3_rail_bounce.py
 python examples/phase4_break_shot.py
 python examples/phase5_spin_demo.py
 python examples/phase6_realism_demo.py
+python examples/phase7_side_spin_demo.py
 ```
 
 ## Test coverage
@@ -77,6 +82,7 @@ file. It validates:
 - spin slip velocity, cloth friction decay, tangential collision impulses, and
   cue english on break setup
 - pockets, rail spin friction, `CueStrike` offsets, and skidding without spin
+- 3D angular velocity, side-spin cloth slip, swerve knob, and collision spin transfer
 - simulation bookkeeping such as time advancement, fixed-step runs,
   run-until-stopped, and snapshots
 

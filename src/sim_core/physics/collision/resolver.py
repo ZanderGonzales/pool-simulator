@@ -9,9 +9,10 @@ from sim_core.physics.ball import Ball
 from sim_core.physics.collision.detector import BallBallContact
 from sim_core.physics.spin_integrator import sphere_inertia
 from sim_core.physics.table import TableConfig
-from sim_core.utils.vectors import dot, vec2
+from sim_core.utils.vectors import cross3, dot, norm3, vec2, vec2_to_vec3, vec3
 
 Vec2 = NDArray[np.float64]
+Vec3 = NDArray[np.float64]
 
 
 def separate_balls(ball_a: Ball, ball_b: Ball, normal: Vec2, penetration: float) -> None:
@@ -28,19 +29,29 @@ def tangential_direction(normal: Vec2) -> Vec2:
     return vec2(-normal[1], normal[0])
 
 
+def _contact_offset(normal: Vec2, radius: float, *, toward_other: bool) -> Vec3:
+    sign = 1.0 if toward_other else -1.0
+    return vec3(sign * normal[0] * radius, sign * normal[1] * radius, 0.0)
+
+
+def _surface_velocity_xy(ball: Ball, offset: Vec3) -> Vec2:
+    v = vec2_to_vec3(ball.velocity)
+    return (v + cross3(ball.angular_velocity, offset))[:2]
+
+
 def relative_tangential_velocity(
     ball_a: Ball,
     ball_b: Ball,
     tangent: Vec2,
+    normal: Vec2,
 ) -> float:
-    """
-    Relative tangential velocity at the contact point including spin.
-
-    Assumes equal radius point contact; spin contributes r*omega along tangent.
-    """
+    """Relative tangential velocity at the contact including 3D spin."""
     r = ball_a.radius
-    v_rel = ball_b.velocity - ball_a.velocity
-    return dot(v_rel, tangent) + r * (ball_b.omega + ball_a.omega)
+    off_a = _contact_offset(normal, r, toward_other=True)
+    off_b = _contact_offset(normal, r, toward_other=False)
+    v_a = _surface_velocity_xy(ball_a, off_a)
+    v_b = _surface_velocity_xy(ball_b, off_b)
+    return dot(v_b - v_a, tangent)
 
 
 def resolve_ball_ball_contact(
@@ -76,6 +87,7 @@ def resolve_ball_ball_contact(
             ball_a,
             ball_b,
             tangent,
+            normal,
             table,
             normal_impulse,
         )
@@ -90,6 +102,7 @@ def _apply_tangential_impulse(
     ball_a: Ball,
     ball_b: Ball,
     tangent: Vec2,
+    normal: Vec2,
     table: TableConfig,
     normal_impulse: float,
 ) -> float:
@@ -100,11 +113,16 @@ def _apply_tangential_impulse(
     """
     r = ball_a.radius
     inertia = sphere_inertia(ball_a.mass, r)
+    off_a = _contact_offset(normal, r, toward_other=True)
+    off_b = _contact_offset(normal, r, toward_other=False)
+    tangent_3d = vec3(tangent[0], tangent[1], 0.0)
+    lever_a = norm3(cross3(off_a, tangent_3d))
+    lever_b = norm3(cross3(off_b, tangent_3d))
     inv_mass_sum = (1.0 / ball_a.mass) + (1.0 / ball_b.mass)
-    inv_inertia_sum = (r * r / inertia) + (r * r / inertia)
+    inv_inertia_sum = (lever_a * lever_a + lever_b * lever_b) / inertia
     inv_tangential = inv_mass_sum + inv_inertia_sum
 
-    v_rel_t = relative_tangential_velocity(ball_a, ball_b, tangent)
+    v_rel_t = relative_tangential_velocity(ball_a, ball_b, tangent, normal)
     if abs(v_rel_t) < 1e-12:
         return 0.0
 
@@ -112,10 +130,11 @@ def _apply_tangential_impulse(
     max_tangential = table.ball_ball_friction * normal_impulse
     tangential_impulse = float(np.clip(tangential_impulse, -max_tangential, max_tangential))
 
+    impulse_vec = vec3(tangent[0] * tangential_impulse, tangent[1] * tangential_impulse, 0.0)
     ball_a.velocity = ball_a.velocity - (tangential_impulse / ball_a.mass) * tangent
     ball_b.velocity = ball_b.velocity + (tangential_impulse / ball_b.mass) * tangent
-    ball_a.omega = ball_a.omega - (r / inertia) * tangential_impulse
-    ball_b.omega = ball_b.omega - (r / inertia) * tangential_impulse
+    ball_a.angular_velocity = ball_a.angular_velocity - cross3(off_a, impulse_vec) / inertia
+    ball_b.angular_velocity = ball_b.angular_velocity + cross3(off_b, impulse_vec) / inertia
 
     return tangential_impulse
 

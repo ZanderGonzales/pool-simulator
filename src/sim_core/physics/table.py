@@ -14,6 +14,7 @@ from sim_core.utils.constants import (
     DEFAULT_ROLLING_RESISTANCE_COEFFICIENT,
     DEFAULT_SLIDING_FRICTION_COEFFICIENT,
     DEFAULT_SPIN_DECAY_RATE,
+    DEFAULT_SWERVE_COEFFICIENT,
     DEFAULT_VELOCITY_STOP_THRESHOLD,
     SLIDING_SPEED_THRESHOLD,
     TABLE_HEIGHT_M,
@@ -113,6 +114,7 @@ class TableConfig:
     spin_decay_rate: float = DEFAULT_SPIN_DECAY_RATE
     omega_stop_threshold: float = DEFAULT_OMEGA_STOP_THRESHOLD
     sliding_speed_threshold: float = SLIDING_SPEED_THRESHOLD
+    swerve_coefficient: float = DEFAULT_SWERVE_COEFFICIENT
     pocket_radius: float = DEFAULT_POCKET_RADIUS_M
     cushions: tuple[CushionSegment, ...] = field(default_factory=tuple)
     pockets: tuple[Pocket, ...] = field(default_factory=tuple)
@@ -140,6 +142,8 @@ class TableConfig:
             raise ValueError("omega_stop_threshold must be positive")
         if self.sliding_speed_threshold <= 0:
             raise ValueError("sliding_speed_threshold must be positive")
+        if self.swerve_coefficient < 0:
+            raise ValueError("swerve_coefficient must be non-negative")
         if self.pocket_radius <= 0:
             raise ValueError("pocket_radius must be positive")
         if not self.cushions:

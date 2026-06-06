@@ -82,7 +82,7 @@ def integrate_position(ball: Ball, dt: float) -> None:
 
 def _uses_spin_integrator(ball: Ball, table: TableConfig) -> bool:
     """Use spin/cloth integrator when spin is active or sliding friction applies."""
-    if ball.omega != 0.0:
+    if ball.spin_speed > 0.0:
         return True
     if table.sliding_friction_coefficient <= 0.0:
         return False

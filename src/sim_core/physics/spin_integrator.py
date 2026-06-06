@@ -9,27 +9,38 @@ from sim_core.physics.ball import Ball
 from sim_core.physics.integrator import apply_rolling_resistance
 from sim_core.physics.table import TableConfig
 from sim_core.utils.constants import GRAVITY_MPS2
-from sim_core.utils.vectors import dot, norm, vec2
+from sim_core.utils.vectors import cross3, dot, norm, vec2, vec3
 
 Vec2 = NDArray[np.float64]
+Vec3 = NDArray[np.float64]
 
 _VELOCITY_EPS = 1e-12
 
 
+def table_contact_offset(radius: float) -> Vec3:
+    """Vector from ball center to the cloth contact point at the table surface."""
+    return vec3(0.0, 0.0, -radius)
+
+
 def slip_velocity(ball: Ball) -> Vec2:
     """
-    Slip velocity at the cloth contact for a 2D rigid disk.
+    Tangential slip velocity at the cloth contact.
 
-    Motion-aligned lumped model: v_slip = v - omega_z * r * v_hat.
-    When speed is near zero, a fixed reference axis avoids singularities.
+    Follow/draw uses motion-aligned rim slip (Phase 5-6). Side spin uses the
+    bottom contact velocity from horizontal angular velocity components.
     """
-    v = ball.velocity
-    speed = norm(v)
     r = ball.radius
+    omega = ball.angular_velocity
+    r_bottom = table_contact_offset(r)
+    side_slip = cross3(vec3(omega[0], omega[1], 0.0), r_bottom)[:2]
+
+    speed = ball.speed
     if speed < _VELOCITY_EPS:
-        return v - ball.omega * r * vec2(1.0, 0.0)
-    v_hat = v / speed
-    return v - ball.omega * r * v_hat
+        return side_slip.copy()
+
+    v_hat = ball.velocity / speed
+    follow_draw = ball.velocity - omega[2] * r * v_hat
+    return follow_draw + side_slip
 
 
 def slip_speed(ball: Ball) -> float:
@@ -38,17 +49,17 @@ def slip_speed(ball: Ball) -> float:
 
 
 def sphere_inertia(mass: float, radius: float) -> float:
-    """Moment of inertia for a solid sphere about the vertical axis."""
+    """Moment of inertia for a solid sphere about any axis through the center."""
     return 0.4 * mass * radius * radius
 
 
 def apply_cloth_friction(ball: Ball, table: TableConfig, dt: float) -> None:
     """
-    Update velocity and omega from cloth friction (sliding or rolling regime).
+    Update velocity and angular velocity from cloth friction.
 
-    Sliding: kinetic friction opposite slip, |F| <= mu_s * m * g, with coupled
-    spin adjustment along the motion direction. Rolling: Phase 1 rolling
-    resistance plus optional spin decay.
+    Sliding: kinetic friction opposite slip in the table plane, capped at
+    mu_s * m * g, with torque tau = r_c x F. Rolling: Phase 1 rolling resistance
+    plus optional spin decay on the full omega vector.
     """
     if not ball.active or dt <= 0.0:
         return
@@ -59,9 +70,18 @@ def apply_cloth_friction(ball: Ball, table: TableConfig, dt: float) -> None:
 
     if (
         speed < table.velocity_stop_threshold
-        and abs(ball.omega) < table.omega_stop_threshold
+        and ball.spin_speed < table.omega_stop_threshold
     ):
         ball.stop()
+        return
+
+    if speed < table.velocity_stop_threshold:
+        ball.velocity = vec2(0.0, 0.0)
+        _apply_rolling_regime(ball, table, dt)
+        return
+
+    if speed < table.sliding_speed_threshold:
+        _apply_rolling_regime(ball, table, dt)
         return
 
     if slip_speed < table.sliding_speed_threshold:
@@ -80,29 +100,51 @@ def apply_cloth_friction(ball: Ball, table: TableConfig, dt: float) -> None:
     slip_parallel = dot(slip, v_hat)
     ball.omega += (reduction / ball.radius) * float(np.sign(slip_parallel))
 
-    if table.spin_decay_rate > 0.0:
-        ball.omega *= max(0.0, 1.0 - table.spin_decay_rate * dt)
+    horizontal_spin = ball.angular_velocity[0] ** 2 + ball.angular_velocity[1] ** 2
+    if horizontal_spin > 1e-18:
+        force = vec3(
+            -slip_hat[0] * (ball.mass * reduction / dt),
+            -slip_hat[1] * (ball.mass * reduction / dt),
+            0.0,
+        )
+        torque = cross3(table_contact_offset(ball.radius), force)
+        inertia = sphere_inertia(ball.mass, ball.radius)
+        ball.angular_velocity = ball.angular_velocity + (torque / inertia) * dt
 
+    if table.spin_decay_rate > 0.0:
+        ball.angular_velocity *= max(0.0, 1.0 - table.spin_decay_rate * dt)
+
+    _apply_swerve(ball, table, dt)
     ball.position = ball.position + ball.velocity * dt
+
+
+def _apply_swerve(ball: Ball, table: TableConfig, dt: float) -> None:
+    """Optional empirical side-force from horizontal spin components."""
+    if table.swerve_coefficient <= 0.0 or ball.speed < _VELOCITY_EPS:
+        return
+    speed = ball.speed
+    v_hat = ball.velocity / speed
+    side_spin = ball.angular_velocity[0] * (-v_hat[1]) + ball.angular_velocity[1] * v_hat[0]
+    if abs(side_spin) < 1e-12:
+        return
+    lateral = vec2(-v_hat[1], v_hat[0])
+    acceleration = table.swerve_coefficient * side_spin * lateral
+    ball.velocity = ball.velocity + acceleration * dt
 
 
 def _apply_rolling_regime(ball: Ball, table: TableConfig, dt: float) -> None:
     """Rolling resistance on translation and exponential spin decay."""
     apply_rolling_resistance(ball, table, dt)
-    if table.spin_decay_rate > 0.0 and abs(ball.omega) > 0.0:
+    if table.spin_decay_rate > 0.0 and ball.spin_speed > 0.0:
         decay = max(0.0, 1.0 - table.spin_decay_rate * dt)
-        ball.omega *= decay
-        if abs(ball.omega) < table.omega_stop_threshold:
-            ball.omega = 0.0
+        ball.angular_velocity *= decay
+        if ball.spin_speed < table.omega_stop_threshold:
+            ball.angular_velocity = vec3(0.0, 0.0, 0.0)
 
 
 def is_pure_rolling(ball: Ball, *, tolerance: float = 1e-6) -> bool:
-    """Return True when center speed matches spin-induced rim speed (|v| ≈ |omega| r)."""
-    speed = ball.speed
-    rim = abs(ball.omega) * ball.radius
-    if speed < _VELOCITY_EPS and rim < _VELOCITY_EPS:
-        return True
-    return abs(speed - rim) <= tolerance
+    """Return True when cloth slip speed is below tolerance."""
+    return slip_speed(ball) <= tolerance
 
 
 def apply_stopping(ball: Ball, table: TableConfig) -> None:
@@ -111,9 +153,9 @@ def apply_stopping(ball: Ball, table: TableConfig) -> None:
         return
     if ball.speed < table.velocity_stop_threshold:
         ball.velocity = vec2(0.0, 0.0)
-    if abs(ball.omega) < table.omega_stop_threshold:
-        ball.omega = 0.0
-    if ball.speed < table.velocity_stop_threshold and abs(ball.omega) < table.omega_stop_threshold:
+    if ball.spin_speed < table.omega_stop_threshold:
+        ball.angular_velocity = vec3(0.0, 0.0, 0.0)
+    if ball.speed < table.velocity_stop_threshold and ball.spin_speed < table.omega_stop_threshold:
         ball.stop()
 
 

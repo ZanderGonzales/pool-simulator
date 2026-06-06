@@ -10,12 +10,18 @@ from sim_core.physics.spin_integrator import (
 )
 from sim_core.physics.table import TableConfig
 from sim_core.utils.constants import BALL_RADIUS_M
-from sim_core.utils.vectors import norm, vec2
+from sim_core.utils.vectors import norm, vec2, vec3
 
 
-def test_slip_velocity_matches_motion_aligned_model() -> None:
-    ball = Ball(id=0, position=vec2(0.0, 0.0), velocity=vec2(1.0, 0.0), omega=0.5 / BALL_RADIUS_M)
-    expected = ball.velocity - ball.omega * ball.radius * (ball.velocity / ball.speed)
+def test_slip_velocity_uses_hybrid_contact_model() -> None:
+    ball = Ball(
+        id=0,
+        position=vec2(0.0, 0.0),
+        velocity=vec2(1.0, 0.0),
+        omega=0.5 / BALL_RADIUS_M,
+    )
+    side = np.cross([0.0, 0.0, 0.0], [0.0, 0.0, -BALL_RADIUS_M])[:2]
+    expected = ball.velocity - ball.omega * ball.radius * (ball.velocity / ball.speed) + side
     np.testing.assert_allclose(slip_velocity(ball), expected, rtol=1e-9)
 
 
@@ -33,6 +39,18 @@ def test_pure_rolling_when_speed_matches_rim() -> None:
         omega=speed / BALL_RADIUS_M,
     )
     assert is_pure_rolling(ball, tolerance=1e-6)
+
+
+def test_side_spin_produces_contact_slip() -> None:
+    ball = Ball(
+        id=0,
+        position=vec2(0.0, 0.0),
+        velocity=vec2(1.0, 0.0),
+        angular_velocity=vec3(0.0, 0.0, 0.0),
+    )
+    ball.angular_velocity = vec3(0.0, 8.0, 0.0)
+    slip = slip_velocity(ball)
+    assert norm(slip) > 0.1
 
 
 def test_spin_decays_under_table_friction(spin_table: TableConfig) -> None:
@@ -88,13 +106,15 @@ def test_cloth_friction_does_not_increase_energy(spin_table: TableConfig) -> Non
         id=0,
         position=vec2(0.0, 0.0),
         velocity=vec2(1.5, 0.2),
-        omega=8.0,
+        angular_velocity=vec3(0.0, 0.0, 8.0),
     )
     inertia = 0.4 * ball.mass * ball.radius * ball.radius
-    initial = 0.5 * ball.mass * ball.speed**2 + 0.5 * inertia * ball.omega**2
+    omega = ball.angular_velocity
+    initial = 0.5 * ball.mass * ball.speed**2 + 0.5 * inertia * float(np.dot(omega, omega))
     dt = 0.01
 
     for _ in range(100):
         apply_cloth_friction(ball, spin_table, dt)
-        energy = 0.5 * ball.mass * ball.speed**2 + 0.5 * inertia * ball.omega**2
+        omega = ball.angular_velocity
+        energy = 0.5 * ball.mass * ball.speed**2 + 0.5 * inertia * float(np.dot(omega, omega))
         assert energy <= initial + 1e-6

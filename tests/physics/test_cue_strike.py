@@ -23,8 +23,24 @@ def test_cue_strike_parallel_offset_sets_omega_sign() -> None:
     follow_setup = create_break_setup(cue_strike=follow)
     draw_setup = create_break_setup(cue_strike=draw)
 
-    follow_omega = follow_setup.balls[follow_setup.cue_ball_index].omega
-    draw_omega = draw_setup.balls[draw_setup.cue_ball_index].omega
+    follow_ball = follow_setup.balls[follow_setup.cue_ball_index]
+    draw_ball = draw_setup.balls[draw_setup.cue_ball_index]
 
-    assert follow_omega > 0.0
-    assert draw_omega < 0.0
+    assert follow_ball.omega > 0.0
+    assert draw_ball.omega < 0.0
+    assert follow_ball.angular_velocity[2] > 0.0
+    assert draw_ball.angular_velocity[2] < 0.0
+
+
+def test_cue_strike_perpendicular_sets_side_spin() -> None:
+    strike = CueStrike(
+        speed=2.0,
+        aim_direction=vec2(-1.0, 0.0),
+        hit_offset_perpendicular=0.4,
+    )
+    setup = create_break_setup(cue_strike=strike)
+    cue = setup.balls[setup.cue_ball_index]
+
+    assert abs(cue.angular_velocity[1]) < 1e-9
+    assert cue.angular_velocity[0] < -1.0
+    assert cue.omega == 0.0
